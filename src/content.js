@@ -190,7 +190,8 @@ function openOverlay() {
     }
     
     overlay.classList.add('active');
-    document.body.style.overflow = 'hidden'; // Evitar scroll del fondo
+    document.documentElement.classList.add('thc-overlay-active');
+    document.body.classList.add('thc-overlay-active');
     
     // Iniciar timer dinámico
     if (!timerInterval) {
@@ -209,7 +210,8 @@ function closeOverlay() {
     document.documentElement.style.removeProperty('--thc-menu-height');
     
     overlay.classList.remove('active');
-    document.body.style.overflow = ''; // Restaurar scroll del fondo
+    document.documentElement.classList.remove('thc-overlay-active');
+    document.body.classList.remove('thc-overlay-active');
     
     if (timerInterval) {
       clearInterval(timerInterval);

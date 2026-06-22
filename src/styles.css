@@ -63,6 +63,12 @@
   z-index: 100000 !important;
 }
 
+/* Ocultar barra de scroll de la página oficial cuando el overlay está activo */
+html.thc-overlay-active,
+body.thc-overlay-active {
+  overflow: hidden !important;
+}
+
 /* Cabecera / Barra de herramientas */
 #thc-optimizer-overlay .thc-header {
   padding: 24px 40px 16px 40px;
