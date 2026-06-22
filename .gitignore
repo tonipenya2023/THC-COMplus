@@ -1,0 +1,79 @@
+# ==========================
+# PYTHON
+# ==========================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+venv/
+.venv/
+env/
+ENV/
+
+build/
+dist/
+*.egg-info/
+.eggs/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ==========================
+# IDE
+# ==========================
+
+.vscode/
+.idea/
+
+# ==========================
+# SISTEMA
+# ==========================
+
+Thumbs.db
+.DS_Store
+
+# ==========================
+# LOGS
+# ==========================
+
+*.log
+
+# ==========================
+# VARIABLES DE ENTORNO
+# ==========================
+
+.env
+.env.*
+
+# ==========================
+# POSTGRESQL
+# ==========================
+
+*.backup
+*.dump
+
+pgdata/
+postgres-data/
+postgresql-data/
+
+# Docker PostgreSQL
+docker-volumes/
+volumes/
+
+# ==========================
+# GRAFANA
+# ==========================
+
+grafana.db
+data/
+plugins/
+
+# ==========================
+# TEMPORALES
+# ==========================
+
+*.tmp
+*.bak
+api_explorer_session.sqlite3

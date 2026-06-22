@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "THC-COM+ Competiciones de THC-SUITE by Nefastix13",
+  "version": "1.0.0",
+  "description": "Filtra eficientemente y embellece la visualización de competiciones en thehunter.com",
+  "author": "Antigravity",
+  "icons": {
+    "16": "thc_comp_logo.png",
+    "48": "thc_comp_logo.png",
+    "128": "thc_comp_logo.png"
+  },
+  "permissions": [],
+  "host_permissions": [
+    "*://*.thehunter.com/*",
+    "*://thehunter.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.thehunter.com/*",
+        "*://thehunter.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "thc_comp_logo.png"
+      ],
+      "matches": [
+        "*://*.thehunter.com/*",
+        "*://thehunter.com/*"
+      ]
+    }
+  ]
+}
