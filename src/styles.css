@@ -36,10 +36,10 @@
 /* Contenedor Overlay Principal */
 #thc-optimizer-overlay {
   position: fixed;
-  top: 0;
+  top: var(--thc-menu-height, 0px);
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: calc(100vh - var(--thc-menu-height, 0px));
   background: rgba(10, 12, 16, 0.96);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -50,12 +50,17 @@
   flex-direction: column;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.4s ease, top 0.4s ease, height 0.4s ease;
 }
 
 #thc-optimizer-overlay.active {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Mantener cabecera oficial por encima del overlay */
+#statusbar-container.thc-official-header-active {
+  z-index: 100000 !important;
 }
 
 /* Cabecera / Barra de herramientas */

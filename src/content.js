@@ -181,6 +181,14 @@ function createOverlay() {
 function openOverlay() {
   const overlay = document.getElementById('thc-optimizer-overlay');
   if (overlay) {
+    // Obtener la altura de la cabecera oficial (statusbar) y asignarla a una variable CSS
+    const statusbar = document.getElementById('statusbar-container');
+    if (statusbar) {
+      const menuHeight = statusbar.offsetHeight;
+      document.documentElement.style.setProperty('--thc-menu-height', `${menuHeight}px`);
+      statusbar.classList.add('thc-official-header-active');
+    }
+    
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden'; // Evitar scroll del fondo
     
@@ -194,6 +202,12 @@ function openOverlay() {
 function closeOverlay() {
   const overlay = document.getElementById('thc-optimizer-overlay');
   if (overlay) {
+    const statusbar = document.getElementById('statusbar-container');
+    if (statusbar) {
+      statusbar.classList.remove('thc-official-header-active');
+    }
+    document.documentElement.style.removeProperty('--thc-menu-height');
+    
     overlay.classList.remove('active');
     document.body.style.overflow = ''; // Restaurar scroll del fondo
     
