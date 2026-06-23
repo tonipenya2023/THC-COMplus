@@ -552,6 +552,11 @@ body.thc-classic-design-active .thc-toggle-btn { border-radius:2px; background:#
   gap: 12px;
 }
 
+.thc-quick-filter-row:first-child {
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(249,55,13,.45);
+}
+
 .thc-quick-filter-label {
   font-family: 'Outfit', 'Inter', sans-serif;
   font-size: 11px;
