@@ -616,13 +616,6 @@ body.thc-overlay-active {
   box-shadow: 0 4px 12px rgba(252, 129, 129, 0.2) !important;
 }
 
-#thc-optimizer-overlay .thc-btn-leave:hover span {
-  display: none !important;
-}
-
-#thc-optimizer-overlay .thc-btn-leave:hover::after {
-  content: "Salir" !important;
-}
 
 /* Estilos para el Historial de Competiciones */
 .thc-history-section h3 {
@@ -733,3 +726,178 @@ body.thc-overlay-active {
   margin-left: 8px;
   transition: transform 0.2s ease;
 }
+
+
+/* Selector de diseño */
+#thc-optimizer-overlay .thc-design-switch { display:inline-flex; margin-left:16px; border:1px solid #444; background:#202020; }
+#thc-optimizer-overlay .thc-design-switch button { padding:7px 12px; border:0; border-right:1px solid #444; background:transparent; color:#aaa; font:500 12px Arial,sans-serif; cursor:pointer; }
+#thc-optimizer-overlay .thc-design-switch button:last-child { border-right:0; }
+#thc-optimizer-overlay .thc-design-switch button.active { background:#414141; color:#fff; }
+
+#thc-optimizer-overlay[data-design="classic"] { background:rgba(15,15,15,.98); color:#d0d0d0; font-family:Arial,Helvetica,sans-serif; }
+#thc-optimizer-overlay[data-design="classic"] h1 { background:none; color:#e4e4e4; -webkit-text-fill-color:currentColor; font-size:22px; font-weight:600; }
+#thc-optimizer-overlay[data-design="classic"] .thc-header { padding-bottom:10px; }
+#thc-optimizer-overlay[data-design="classic"] .thc-content-area { padding-top:4px; }
+#thc-optimizer-overlay[data-design="classic"] .thc-comp-grid { max-width:1200px; margin:0 auto; }
+#thc-optimizer-overlay[data-design="classic"] .thc-search-icon { display:none; }
+#thc-optimizer-overlay[data-design="classic"] .thc-search-input { padding-left:12px; }
+#thc-optimizer-overlay[data-design="classic"] .thc-search-input,
+#thc-optimizer-overlay[data-design="classic"] .thc-filter-select { border-radius:2px !important; background:#202020 !important; border-color:#454545 !important; box-shadow:none !important; }
+#thc-optimizer-overlay[data-design="classic"] .thc-stats-badge { border-radius:2px; background:#272727; border-color:#444; color:#ccc; }
+#thc-optimizer-overlay[data-design="classic"] .thc-close-overlay:hover { background:#333; border-color:#555; color:#ddd; transform:none; }
+body.thc-classic-design-active .thc-toggle-btn { border-radius:2px; background:#333; box-shadow:none; color:#ddd; }
+
+.thc-classic-table { width:100%; table-layout:fixed; border-collapse:collapse; background:#151515; color:#ccc; font:13px/1.35 Arial,Helvetica,sans-serif; }
+.thc-classic-table .thc-col-count { width:74px; }
+.thc-classic-table .thc-col-toggle { width:26px; }
+.thc-classic-table .thc-col-species { width:16%; }
+.thc-classic-table .thc-col-competition { width:25%; }
+.thc-classic-table .thc-col-reserves { width:40%; }
+.thc-classic-table .thc-col-time { width:90px; }
+.thc-classic-table thead th { padding:6px 10px; border-bottom:1px solid #3b3b3b; background:#181818; color:#888; font-size:10px; font-weight:600; text-align:left; text-transform:uppercase; letter-spacing:.35px; }
+.thc-classic-table thead th:last-child { text-align:right; }
+.thc-classic-sort { width:100%; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:0; border:0; background:transparent; color:inherit; font:inherit; text-align:left; text-transform:inherit; letter-spacing:inherit; cursor:pointer; }
+.thc-classic-sort span { min-width:10px; color:#aaa; font-size:9px; }
+.thc-classic-table thead th:last-child .thc-classic-sort { text-align:right; }
+
+
+.thc-classic-group-heading th { padding:8px 0 3px; }
+.thc-classic-section-title { width:100%; display:flex; justify-content:space-between; align-items:center; padding:11px 12px; border:0; border-left:4px solid #b64b28; background:#232323; color:#e1e1e1; font:500 18px Arial,sans-serif; text-align:left; cursor:pointer; }
+.thc-classic-section-title:hover { background:#292929; }
+.thc-classic-section-arrow { color:#aaa; font-size:12px; }
+.thc-classic-group.collapsed .thc-classic-item,
+.thc-classic-group.collapsed .thc-classic-details-row,
+.thc-classic-group.collapsed .thc-classic-empty-row { display:none; }
+
+.thc-classic-item td { padding:5px 8px; border-bottom:4px solid #151515; background:#292929; vertical-align:middle; overflow:hidden; }
+.thc-classic-item:hover td,
+.thc-classic-item.expanded td { background:#303030; }
+.thc-classic-count { display:block; padding:3px 7px; border-radius:12px; background:#454545; color:#ddd; text-align:center; font-weight:400; }
+.thc-classic-row-toggle { width:22px; padding:0; border:0; background:transparent; color:#bbb; font-size:11px; cursor:pointer; }
+.thc-classic-icons,
+.thc-classic-reserve { display:flex; align-items:center; gap:4px; min-width:0; }
+.thc-classic-icons { flex-wrap:wrap; }
+.thc-classic-reserve > span:last-child { min-width:0; overflow-wrap:anywhere; }
+.thc-classic-animal-icon,
+.thc-classic-reserve-icon { width:32px; height:32px; object-fit:contain; flex:0 0 auto; }
+.thc-classic-reserve-icon { width:27px; height:27px; }
+.thc-classic-name { color:#eee; font-weight:600; overflow-wrap:anywhere; }
+.thc-classic-item .thc-timer-value { display:block; width:max-content; white-space:nowrap; color:#d5d5d5 !important; font-weight:500; text-align:right; }
+.thc-classic-empty-row td { padding:9px 12px; background:#1e1e1e; color:#777; }
+
+.thc-classic-details-row { display:none; }
+.thc-classic-details-row.active { display:table-row; }
+.thc-classic-details-row > td { padding:0; border-bottom:4px solid #151515; background:#202020; }
+.thc-classic-details { position:relative; padding:14px 18px 16px; color:#ccc; }
+.thc-classic-detail-actions { position:absolute; top:12px; right:18px; }
+#thc-optimizer-overlay[data-design="classic"] .thc-rules-content { color:#ccc; font:400 13px/1.45 Arial,Helvetica,sans-serif; }
+#thc-optimizer-overlay[data-design="classic"] .thc-rules-content h4 { margin:12px 0 3px; padding:0; color:#e5e5e5; font-size:13px; font-weight:600; }
+#thc-optimizer-overlay[data-design="classic"] .thc-rules-content h4:first-child { margin-top:0; }
+#thc-optimizer-overlay[data-design="classic"] .thc-rules-content p,
+#thc-optimizer-overlay[data-design="classic"] .thc-rules-content ul,
+#thc-optimizer-overlay[data-design="classic"] .thc-rules-content ol { margin:0 0 7px; }
+#thc-optimizer-overlay[data-design="classic"] .thc-rules-content strong { color:#ddd; font-weight:600; }
+
+.thc-classic-columns { display:grid; grid-template-columns:1fr 1.25fr .75fr; gap:20px; margin-top:14px; padding-top:12px; border-top:1px solid #3a3a3a; }
+#thc-optimizer-overlay[data-design="classic"] .thc-classic-details h3,
+#thc-optimizer-overlay[data-design="classic"] .thc-classic-detail-toggle { margin:0 0 8px; padding:0 0 6px; border:0; border-bottom:1px solid #3a3a3a; background:transparent; color:#ddd; font:600 13px Arial,sans-serif; text-align:left; }
+.thc-classic-detail-toggle { width:100%; display:flex; justify-content:space-between; cursor:pointer; }
+.thc-classic-detail-arrow { color:#aaa; font-size:11px; }
+.thc-classic-collapsible-content { padding-top:4px; }
+#thc-optimizer-overlay[data-design="classic"] .thc-prize-list { gap:5px; }
+.thc-classic-prize-table { width:100%; border-collapse:collapse; table-layout:fixed; }
+.thc-classic-prize-table td { padding:7px 10px; border:1px solid #3d3d3d; background:#282828; color:#ccc; font-size:12px; font-weight:400; }
+.thc-classic-prize-table td:first-child { width:72px; }
+.thc-classic-prize-table td:last-child { width:64px; text-align:right; white-space:nowrap; }
+
+#thc-optimizer-overlay[data-design="classic"] .thc-prize-item { padding:7px 9px; border:1px solid #3d3d3d; border-radius:2px; background:#282828; }
+#thc-optimizer-overlay[data-design="classic"] .thc-prize-rank,
+#thc-optimizer-overlay[data-design="classic"] .thc-reward-trophy,
+#thc-optimizer-overlay[data-design="classic"] .thc-reward-gold { color:#ccc; font-size:12px; font-weight:400; text-transform:none; }
+#thc-optimizer-overlay[data-design="classic"] .thc-reward-gold { padding:0; background:transparent; }
+#thc-optimizer-overlay[data-design="classic"] .thc-btn,
+#thc-optimizer-overlay[data-design="classic"] .thc-btn-join,
+#thc-optimizer-overlay[data-design="classic"] .thc-btn-leave { padding:6px 12px !important; border:1px solid #555 !important; border-radius:2px !important; background:#383838 !important; box-shadow:none !important; color:#ddd !important; font:500 12px Arial,sans-serif !important; }
+#thc-optimizer-overlay[data-design="classic"] .thc-btn:hover,
+#thc-optimizer-overlay[data-design="classic"] .thc-btn-join:hover,
+#thc-optimizer-overlay[data-design="classic"] .thc-btn-leave:hover { transform:none !important; background:#454545 !important; color:#fff !important; }
+#thc-optimizer-overlay[data-design="classic"] .thc-history-day-link { color:#bbb; font-weight:500; }
+#thc-optimizer-overlay[data-design="classic"] .thc-empty-note { color:#888; font-size:12px; }
+
+@media (max-width:1050px) {
+  .thc-classic-table .thc-col-species { width:18%; }
+  .thc-classic-table .thc-col-competition { width:28%; }
+  .thc-classic-table .thc-col-reserves { width:38%; }
+  .thc-classic-columns { grid-template-columns:1fr; }
+}
+
+/* FILTROS RÁPIDOS POR ICONOS (Especies y Reservas) */
+.thc-quick-filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #141414;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.thc-quick-filter-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.thc-quick-filter-label {
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 70px;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.thc-quick-filter-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  flex-grow: 1;
+}
+
+.thc-quick-filter-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  border: 1.5px solid transparent;
+}
+
+/* Especies: iconos cuadrados ligeramente redondeados */
+#thc-quick-species-container .thc-quick-filter-icon {
+  border-radius: 4px;
+}
+
+/* Reservas: iconos circulares */
+#thc-quick-reserves-container .thc-quick-filter-icon {
+  border-radius: 50%;
+  object-fit: contain;
+  background: #222;
+  padding: 1px;
+}
+
+.thc-quick-filter-icon:hover {
+  opacity: 0.9;
+  transform: scale(1.08);
+}
+
+.thc-quick-filter-icon.active {
+  opacity: 1;
+  border-color: #b64b28;
+  box-shadow: 0 0 6px rgba(182, 75, 40, 0.4);
+  transform: scale(1.05);
+}
+

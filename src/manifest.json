@@ -43,7 +43,9 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "thc_comp_logo.png"
+        "thc_comp_logo.png",
+        "assets/animals/*.png",
+        "assets/reserves/*.png"
       ],
       "matches": [
         "*://*.thehunter.com/*",

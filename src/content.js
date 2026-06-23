@@ -15,6 +15,46 @@ let userAccessToken = '';
 let userCompetitionStates = {}; // key: id, value: state (0=not joinable, 1=joinable, 2=joined)
 let competitionHistoryCache = {}; // Caché para almacenar el historial completo de las competiciones
 
+let activeDesign = localStorage.getItem('thc-competition-design') || 'modern';
+let classicSort = { key: 'name', direction: 'asc' };
+
+const ANIMAL_ICON_FILES = {
+  'ibice alpino': 'ibice-alpino.png', 'anade sombrio americano': 'anade-sombrio-americano.png',
+  'zorro artico': 'arctic-fox-male-common.png', 'ciervo axis': 'axis-deer-male-common.png',
+  'banteng': 'banteng-male-common.png', 'muflon canadiense': 'muflon-canadiense.png',
+  'bisonte': 'bisonte.png', 'oso negro': 'oso-negro.png',
+  'ciervo de cola negra': 'ciervo-de-cola-negra.png', 'lince rojo': 'bobcat-male-common.png',
+  'oso pardo': 'brown-bear-male-common.png', 'ganso de canada': 'canada-goose-male-common.png',
+  'conejo cola de algodon': 'conejo-cola-de-algodon.png', 'coyote': 'coyote-male-common.png',
+  'carnero de dall': 'carnero-de-dall.png', 'lince boreal': 'eurasian-lynx-male-common.png',
+  'conejo europeo': 'conejo-europeo.png', 'gamo': 'gamo.png', 'cabra salvaje': 'cabra-salvaje.png',
+  'cerdo salvaje': 'feral-hog-male-common.png', 'anade friso': 'anade-friso.png',
+  'lobo gris': 'grey-wolf-male-common.png', 'oso grizzly': 'oso-grizzly.png',
+  'ganso urraco': 'ganso-urraco.png', 'anade real': 'anade-real.png', 'alce': 'moose-male-common.png',
+  'ciervo mulo': 'ciervo-mulo.png', 'anade rabudo': 'anade-rabudo.png',
+  'faisan': 'pheasant-male-common.png', 'oso polar': 'polar-bear-male-common.png',
+  'puma': 'puma-male-common.png', 'ciervo rojo': 'red-deer-male-common.png',
+  'zorro rojo': 'red-fox-male-common.png', 'canguro rojo': 'canguro-rojo.png',
+  'reno': 'reindeer-male-common.png', 'perdiz nival': 'rock-ptarmigan-male-common.png',
+  'wapiti de las rocosas': 'wapiti-de-las-rocosas.png', 'corzo': 'roe-deer-male-common.png',
+  'wapiti de roosevelt': 'roosevelt-elk-male-common.png', 'ciervo de timor': 'rusa-deer-male-common.png',
+  'ciervo sambar': 'sambar-deer-male-common.png', 'ciervo sitka': 'ciervo-sitka.png',
+  'ganso nival': 'ganso-nival.png', 'liebre americana': 'liebre-americana.png',
+  'pavo': 'turkey-male-common.png', 'bufalo de agua': 'water-buffalo-male-common.png',
+  'ciervo de cola blanca': 'ciervo-de-cola-blanca.png', 'perdiz de cola blanca': 'perdiz-de-cola-blanca.png',
+  'jabali': 'jabali.png', 'perdiz nival de la tundra': 'perdiz-nival-de-la-tundra.png',
+  'urogallo comun': 'urogallo-comun.png'
+};
+
+const RESERVE_ICON_FILES = {
+  'whitehart island': 'whitehart-island.png', "logger's point": 'logger-s-point.png',
+  'settler creeks': 'settler-creeks.png', 'redfeather falls': 'redfeather-falls.png',
+  'hirschfelden': 'hirschfelden.png', 'hemmeldal': 'hemmeldal.png',
+  'rougarou bayou': 'rougarou-bayou.png', 'val-des-bois': 'val-des-bois.png',
+  'bushrangers run': 'bushrangers-run.png', 'whiterime ridge': 'whiterime-ridge.png',
+  'timbergold trails': 'timbergold-trails.png', 'piccabeen bay': 'piccabeen-bay.png'
+};
+
 // Inicialización de la extensión al cargar la página
 console.log("[THC Addon] Cargando content script...");
 init();
@@ -63,6 +103,24 @@ function retrieveAccessToken() {
       }
     }, 1500);
   });
+}
+
+function normalizeIconName(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function extensionAssetUrl(path) {
+  return (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL)
+    ? chrome.runtime.getURL(path)
+    : path;
+}
+
+function renderMatchingIcons(value, catalog, folder, className) {
+  const normalized = normalizeIconName(value);
+  return Object.entries(catalog)
+    .filter(([name]) => normalized.includes(name))
+    .map(([name, file]) => '<img class="' + className + '" src="' + extensionAssetUrl('assets/' + folder + '/' + file) + '" alt="' + name + '">')
+    .join('');
 }
 
 // Obtener los estados de inscripción del usuario
@@ -164,9 +222,17 @@ function createOverlay() {
     <div class="thc-header">
       <div class="thc-header-container">
         <div class="thc-header-top">
-          <div class="thc-title-area">
-            ${logoUrl ? `<img src="${logoUrl}" class="thc-logo-img" alt="THC Logo">` : ''}
-            <h1>COMPETICIONES by Nefastix13</h1>
+          <div class="thc-title-area" style="display: flex; justify-content: space-between; align-items: center; width: 100%;"> 
+            <div style="display: flex; align-items: center;">
+              ${logoUrl ? `<img src="${logoUrl}" class="thc-logo-img" alt="THC Logo">` : ''} 
+              <h1>&nbsp; &nbsp;THC-COMP+ Competiciones - UI Overlay</h1> 
+            </div>
+            <span class="thc-subtitle" style="font-size: 0.75rem; opacity: 0.8; font-weight: normal; margin-left: auto; margin-right: 10px;">From THC-SUITE by Nefastix13</span>
+          </div> 
+
+          <div class="thc-design-switch" aria-label="Diseño de competiciones">
+            <button type="button" data-design="modern">Actual</button>
+            <button type="button" data-design="classic">Clásico</button>
           </div>
           <button class="thc-close-overlay" id="thc-close-btn" title="Cerrar vista optimizada">✕</button>
         </div>
@@ -201,6 +267,16 @@ function createOverlay() {
           </div>
           <div class="thc-stats-badge" id="thc-stats">0 competiciones</div>
         </div>
+        <div class="thc-quick-filters-container">
+          <div class="thc-quick-filter-row">
+            <span class="thc-quick-filter-label">Especies:</span>
+            <div class="thc-quick-filter-icons" id="thc-quick-species-container"></div>
+          </div>
+          <div class="thc-quick-filter-row">
+            <span class="thc-quick-filter-label">Reservas:</span>
+            <div class="thc-quick-filter-icons" id="thc-quick-reserves-container"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="thc-content-area">
@@ -224,6 +300,11 @@ function createOverlay() {
   
   // Agregar eventos a los elementos del DOM creados
   document.getElementById('thc-close-btn').addEventListener('click', closeOverlay);
+
+  overlay.querySelectorAll('.thc-design-switch button').forEach(button => {
+    button.addEventListener('click', () => setActiveDesign(button.dataset.design));
+  });
+  syncDesignState();
   
   document.getElementById('thc-search').addEventListener('input', (e) => {
     activeFilters.search = e.target.value;
@@ -253,6 +334,22 @@ function createOverlay() {
   const compContainer = document.getElementById('thc-comp-container');
   if (compContainer) {
     compContainer.addEventListener('click', (e) => {
+      // Delegación para colapsables clásicos (Clasificación/Historial)
+      const classicDetailToggle = e.target.closest('.thc-classic-detail-toggle');
+      if (classicDetailToggle) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        const content = classicDetailToggle.nextElementSibling;
+        const arrow = classicDetailToggle.querySelector('.thc-classic-detail-arrow');
+        if (content && arrow) {
+          const collapsed = content.style.display === 'none';
+          content.style.display = collapsed ? 'block' : 'none';
+          arrow.textContent = collapsed ? '▼' : '▶';
+        }
+        return;
+      }
+
       // 1. Delegación para colapsar/desplegar el historial
       const toggle = e.target.closest('.thc-history-toggle');
       if (toggle) {
@@ -526,13 +623,19 @@ function applyFilters() {
   
   // Renderizar la lista filtrada
   renderCompetitions(filtered);
+  syncQuickFiltersUI();
 }
 
 // Renderizar la UI con la lista filtrada (Formato Tabla Premium)
 function renderCompetitions(competitions) {
   const container = document.getElementById('thc-comp-container');
   const statsBadge = document.getElementById('thc-stats');
-  
+
+  if (activeDesign === 'classic') {
+    renderClassicCompetitions(competitions, container);
+    return;
+  }
+
   statsBadge.textContent = `${competitions.length} competición${competitions.length !== 1 ? 'es' : ''}`;
   
   if (competitions.length === 0) {
@@ -1191,4 +1294,331 @@ function formatTimeRemaining(seconds) {
     return `${hours}h ${minutes}m ${secs}s`;
   }
   return `${minutes}m ${secs}s`;
+}
+
+// --- FUNCIONES DE SOPORTE DE DISEÑO ---
+
+function setActiveDesign(design) {
+  activeDesign = design;
+  localStorage.setItem('thc-competition-design', design);
+  syncDesignState();
+  applyFilters();
+}
+
+function syncDesignState() {
+  const overlay = document.getElementById('thc-optimizer-overlay');
+  if (overlay) {
+    overlay.setAttribute('data-design', activeDesign);
+  }
+  
+  document.querySelectorAll('.thc-design-switch button').forEach(button => {
+    if (button.dataset.design === activeDesign) {
+      button.classList.add('active');
+    } else {
+      button.classList.remove('active');
+    }
+  });
+
+  if (activeDesign === 'classic') {
+    document.body.classList.add('thc-classic-design-active');
+  } else {
+    document.body.classList.remove('thc-classic-design-active');
+  }
+}
+
+// --- RENDERIZADO CLÁSICO ---
+
+function compactRulesHtml(rulesHtml) {
+  return String(rulesHtml || '')
+    .replace(/(?:<br\s*\/?\s*>\s*){2,}/gi, '<br>')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/>\s+</g, '><')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
+function renderClassicCompetitions(competitions, container) {
+  const now = Date.now() / 1000;
+  const sortedCompetitions = sortClassicCompetitions(competitions, now);
+  const groups = [
+    { id: 'available', title: 'Competiciones disponibles', items: sortedCompetitions },
+    { id: 'joined', title: 'Competiciones inscritas', items: sortedCompetitions.filter(comp => userCompetitionStates[comp.id] === 2) },
+    { id: 'active', title: 'Competiciones activas', items: sortedCompetitions.filter(comp => now >= comp.start && now <= comp.end) }
+  ];
+
+  container.innerHTML = `
+    <table class="thc-classic-table">
+      <colgroup>
+        <col class="thc-col-count"><col class="thc-col-toggle"><col class="thc-col-species">
+        <col class="thc-col-competition"><col class="thc-col-reserves"><col class="thc-col-time">
+      </colgroup>
+      <thead><tr>
+        <th><button type="button" class="thc-classic-sort" data-sort="entrants">Inscritos<span></span></button></th>
+        <th aria-label="Desplegar"></th>
+        <th><button type="button" class="thc-classic-sort" data-sort="species">Especies<span></span></button></th>
+        <th><button type="button" class="thc-classic-sort" data-sort="name">Competición<span></span></button></th>
+        <th><button type="button" class="thc-classic-sort" data-sort="reserves">Reservas<span></span></button></th>
+        <th><button type="button" class="thc-classic-sort" data-sort="time">Tiempo<span></span></button></th>
+      </tr></thead>
+      ${groups.map(group => renderClassicGroup(group, now)).join('')}
+    </table>`;
+
+  updateClassicSortIndicators(container);
+  container.querySelectorAll('.thc-classic-sort').forEach(button => {
+    button.addEventListener('click', () => setClassicSort(button.dataset.sort));
+  });
+  container.querySelectorAll('.thc-classic-section-title').forEach(button => {
+    button.addEventListener('click', () => toggleClassicGroup(button.dataset.group));
+  });
+  container.querySelectorAll('.thc-classic-row-toggle').forEach(button => {
+    button.addEventListener('click', () => toggleClassicDetails(button.dataset.instance, button.dataset.competition));
+  });
+}
+
+function sortClassicCompetitions(competitions, now) {
+  const direction = classicSort.direction === 'asc' ? 1 : -1;
+  const getters = {
+    entrants: comp => Number(comp.entrants) || 0,
+    species: comp => comp.parsedRules.especie || '',
+    name: comp => comp.name || '',
+    reserves: comp => comp.parsedRules.reserva || '',
+    time: comp => now < comp.start ? comp.start : comp.end
+  };
+  const getValue = getters[classicSort.key] || getters.name;
+  return [...competitions].sort((left, right) => {
+    const a = getValue(left);
+    const b = getValue(right);
+    const comparison = typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'es');
+    return comparison * direction;
+  });
+}
+
+function setClassicSort(key) {
+  classicSort = classicSort.key === key
+    ? { key, direction: classicSort.direction === 'asc' ? 'desc' : 'asc' }
+    : { key, direction: 'asc' };
+  applyFilters();
+}
+
+function updateClassicSortIndicators(container) {
+  container.querySelectorAll('.thc-classic-sort').forEach(button => {
+    const indicator = button.querySelector('span');
+    indicator.textContent = button.dataset.sort === classicSort.key
+      ? (classicSort.direction === 'asc' ? '▲' : '▼')
+      : '';
+  });
+}
+
+function renderClassicGroup(group, now) {
+  return `
+    <tbody class="thc-classic-group collapsed" id="classic-group-${group.id}">
+      <tr class="thc-classic-group-heading"><th colspan="6">
+        <button type="button" class="thc-classic-section-title" data-group="${group.id}" aria-expanded="false">
+          <span>${group.title} (${group.items.length})</span><span class="thc-classic-section-arrow">▶</span>
+        </button>
+      </th></tr>
+      ${group.items.length ? group.items.map(comp => renderClassicCompetition(comp, group.id, now)).join('') : '<tr class="thc-classic-empty-row"><td colspan="6">Sin competiciones</td></tr>'}
+    </tbody>`;
+}
+
+function renderClassicCompetition(comp, groupId, now) {
+  const instanceId = `${groupId}-${comp.id}`;
+  const isUpcoming = now < comp.start;
+  const timeLeft = isUpcoming ? comp.start - now : comp.end - now;
+  const reserveIcons = renderMatchingIcons(comp.parsedRules.reserva, RESERVE_ICON_FILES, 'reserves', 'thc-classic-reserve-icon');
+  const animalIcons = renderMatchingIcons(comp.parsedRules.especie, ANIMAL_ICON_FILES, 'animals', 'thc-classic-animal-icon');
+
+  return `
+    <tr class="thc-classic-item" id="row-${instanceId}" data-comp-id="${comp.id}">
+      <td><span class="thc-classic-count">${comp.entrants}</span></td>
+      <td><button type="button" class="thc-classic-row-toggle" data-instance="${instanceId}" data-competition="${comp.id}" aria-label="Desplegar ${comp.name}">▶</button></td>
+      <td><span class="thc-classic-icons">${animalIcons || `<img src="${comp.image}" alt="" class="thc-classic-animal-icon">`}</span></td>
+      <td class="thc-classic-name">${comp.name}</td>
+      <td><span class="thc-classic-reserve">${reserveIcons}<span>${comp.parsedRules.reserva}</span></span></td>
+      <td><span class="thc-timer-value" data-end="${comp.end}" data-start="${comp.start}" data-id="${comp.id}">${formatTimeRemaining(timeLeft)}</span></td>
+    </tr>
+    <tr class="thc-classic-details-row" id="details-${instanceId}"><td colspan="6">
+      <div class="thc-classic-details">
+        <div class="thc-classic-detail-actions" id="join-btn-container-${instanceId}">${renderJoinButton(comp, true)}</div>
+        <div class="thc-rules-content" id="rules-content-${instanceId}">${compactRulesHtml(comp.rulesHtml)}</div>
+        <div class="thc-classic-columns">
+          <section class="thc-details-prizes"><h3>Recompensas</h3><div class="thc-prize-list" id="prizes-list-${instanceId}">${renderPrizesFull(comp.prizes, true)}</div></section>
+          <section class="thc-classic-collapsible">
+            <button type="button" class="thc-classic-detail-toggle"><span>Clasificación</span><span class="thc-classic-detail-arrow">▶</span></button>
+            <div class="thc-classic-collapsible-content thc-leaderboard-container" id="leaderboard-${instanceId}" style="display:none"></div>
+          </section>
+          <section class="thc-classic-collapsible">
+            <button type="button" class="thc-classic-detail-toggle"><span>Historial</span><span class="thc-classic-detail-arrow">▶</span></button>
+            <div class="thc-classic-collapsible-content thc-history-container" id="history-${instanceId}" style="display:none"></div>
+          </section>
+        </div>
+      </div>
+    </td></tr>`;
+}
+
+function toggleClassicGroup(groupId) {
+  const group = document.getElementById(`classic-group-${groupId}`);
+  const button = group ? group.querySelector('.thc-classic-section-title') : null;
+  if (!group || !button) return;
+
+  const isOpening = group.classList.contains('collapsed');
+  if (isOpening) {
+    document.querySelectorAll('.thc-classic-group').forEach(otherGroup => {
+      if (otherGroup !== group) {
+        otherGroup.classList.add('collapsed');
+        const otherBtn = otherGroup.querySelector('.thc-classic-section-title');
+        if (otherBtn) {
+          otherBtn.setAttribute('aria-expanded', 'false');
+          const arrow = otherBtn.querySelector('.thc-classic-section-arrow');
+          if (arrow) arrow.textContent = '▶';
+        }
+      }
+    });
+  }
+
+  const collapsed = group.classList.toggle('collapsed');
+  button.setAttribute('aria-expanded', String(!collapsed));
+  button.querySelector('.thc-classic-section-arrow').textContent = collapsed ? '▶' : '▼';
+}
+
+function toggleClassicDetails(instanceId, competitionId) {
+  const panel = document.getElementById(`details-${instanceId}`);
+  const row = document.getElementById(`row-${instanceId}`);
+  if (!panel || !row) return;
+  const willOpen = !panel.classList.contains('active');
+  document.querySelectorAll('.thc-classic-details-row.active').forEach(item => item.classList.remove('active'));
+  document.querySelectorAll('.thc-classic-item.expanded').forEach(item => {
+    item.classList.remove('expanded');
+    const toggle = item.querySelector('.thc-classic-row-toggle');
+    if (toggle) toggle.textContent = '▶';
+  });
+  if (willOpen) {
+    panel.classList.add('active');
+    row.classList.add('expanded');
+    row.querySelector('.thc-classic-row-toggle').textContent = '▼';
+    loadDetailsForId(instanceId, competitionId);
+  }
+}
+
+// --- FILTROS DE ICONOS RÁPIDOS ---
+
+function renderQuickFilters() {
+  const speciesContainer = document.getElementById('thc-quick-species-container');
+  const reservesContainer = document.getElementById('thc-quick-reserves-container');
+  if (!speciesContainer || !reservesContainer) return;
+
+  // Renderizar Especies
+  speciesContainer.innerHTML = Object.entries(ANIMAL_ICON_FILES)
+    .map(([key, filename]) => {
+      const tooltipName = key.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      return `<img src="${extensionAssetUrl('assets/animals/' + filename)}" 
+                   class="thc-quick-filter-icon" 
+                   data-species="${key}" 
+                   title="${tooltipName}" 
+                   alt="${key}">`;
+    })
+    .join('');
+
+  // Renderizar Reservas
+  reservesContainer.innerHTML = Object.entries(RESERVE_ICON_FILES)
+    .map(([key, filename]) => {
+      const tooltipName = key.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      return `<img src="${extensionAssetUrl('assets/reserves/' + filename)}" 
+                   class="thc-quick-filter-icon" 
+                   data-reserve="${key}" 
+                   title="${tooltipName}" 
+                   alt="${key}">`;
+    })
+    .join('');
+
+  // Asignar listeners a especies
+  speciesContainer.querySelectorAll('.thc-quick-filter-icon').forEach(icon => {
+    icon.addEventListener('click', () => {
+      const speciesKey = icon.dataset.species;
+      const isAlreadyActive = icon.classList.contains('active');
+
+      if (isAlreadyActive) {
+        activeFilters.especie = '';
+      } else {
+        const selectEspecie = document.getElementById('thc-filter-especie');
+        let matchedValue = speciesKey;
+        if (selectEspecie) {
+          for (const option of selectEspecie.options) {
+            if (option.value && normalizeIconName(option.value).includes(speciesKey)) {
+              matchedValue = option.value;
+              break;
+            }
+          }
+        }
+        activeFilters.especie = matchedValue;
+      }
+
+      const selectEspecie = document.getElementById('thc-filter-especie');
+      if (selectEspecie) {
+        selectEspecie.value = activeFilters.especie;
+      }
+
+      applyFilters();
+    });
+  });
+
+  // Asignar listeners a reservas
+  reservesContainer.querySelectorAll('.thc-quick-filter-icon').forEach(icon => {
+    icon.addEventListener('click', () => {
+      const reserveKey = icon.dataset.reserve;
+      const isAlreadyActive = icon.classList.contains('active');
+
+      if (isAlreadyActive) {
+        activeFilters.mapa = '';
+      } else {
+        const selectMapa = document.getElementById('thc-filter-mapa');
+        let matchedValue = reserveKey;
+        if (selectMapa) {
+          for (const option of selectMapa.options) {
+            if (option.value && normalizeIconName(option.value).includes(reserveKey)) {
+              matchedValue = option.value;
+              break;
+            }
+          }
+        }
+        activeFilters.mapa = matchedValue;
+      }
+
+      const selectMapa = document.getElementById('thc-filter-mapa');
+      if (selectMapa) {
+        selectMapa.value = activeFilters.mapa;
+      }
+
+      applyFilters();
+    });
+  });
+}
+
+function syncQuickFiltersUI() {
+  const speciesContainer = document.getElementById('thc-quick-species-container');
+  const reservesContainer = document.getElementById('thc-quick-reserves-container');
+  
+  if (speciesContainer) {
+    const currentSpeciesNorm = normalizeIconName(activeFilters.especie);
+    speciesContainer.querySelectorAll('.thc-quick-filter-icon').forEach(icon => {
+      const key = icon.dataset.species;
+      if (currentSpeciesNorm && currentSpeciesNorm.includes(key)) {
+        icon.classList.add('active');
+      } else {
+        icon.classList.remove('active');
+      }
+    });
+  }
+
+  if (reservesContainer) {
+    const currentReserveNorm = normalizeIconName(activeFilters.mapa);
+    reservesContainer.querySelectorAll('.thc-quick-filter-icon').forEach(icon => {
+      const key = icon.dataset.reserve;
+      if (currentReserveNorm && currentReserveNorm.includes(key)) {
+        icon.classList.add('active');
+      } else {
+        icon.classList.remove('active');
+      }
+    });
+  }
 }
