@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "THC-COM+ Competiciones de THC-SUITE by Nefastix13",
-  "version": "1.0.0",
-  "description": "Filtra eficientemente y embellece la visualización de competiciones en thehunter.com",
-  "author": "Antigravity",
+  "name": "THC-uiCOM+ | Competiciones | from THC-SUITE by Nefastix13",
+  "version": "1.23.6",
+  "description": "UI overlay para las Competiciones de The Huter Classic. Incorpora filtros e iconos interactivos de Especies y Reservas.",
+  "author": "Nefastix13",
   "icons": {
     "16": "thc_comp_logo.png",
     "48": "thc_comp_logo.png",

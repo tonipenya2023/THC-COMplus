@@ -219,7 +219,7 @@ function createOverlay() {
           <div class="thc-title-area" style="display: flex; justify-content: space-between; align-items: center; width: 100%;"> 
             <div style="display: flex; align-items: center;">
               ${logoUrl ? `<img src="${logoUrl}" class="thc-logo-img" alt="THC Logo">` : ''} 
-              <h1>&nbsp; &nbsp;THC-COMP+ Competiciones - UI Overlay</h1> 
+              <h1>&nbsp; &nbsp;THC-uiCOM+ | Competiciones | UI Overlay v1.23.06 |</h1> 
             </div>
             <span class="thc-subtitle" style="font-size: 0.75rem; opacity: 0.8; font-weight: normal; margin-left: auto; margin-right: 10px;">From THC-SUITE by Nefastix13</span>
           </div> 
