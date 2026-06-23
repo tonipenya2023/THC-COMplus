@@ -137,14 +137,14 @@ body.thc-overlay-active {
 /* Filtros y Búsqueda */
 #thc-optimizer-overlay .thc-filters-bar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 16px;
   align-items: center;
 }
 
 #thc-optimizer-overlay .thc-search-wrapper {
   position: relative;
-  flex: 1;
+  flex: 0 1 400px;
   min-width: 250px;
 }
 
@@ -159,6 +159,7 @@ body.thc-overlay-active {
   font-size: 14px;
   transition: all 0.3s ease;
   box-sizing: border-box;
+  height: 44px;
 }
 
 #thc-optimizer-overlay .thc-search-input:focus {
@@ -226,6 +227,10 @@ body.thc-overlay-active {
   font-size: 13px;
   font-weight: 500;
   margin-left: auto;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
 }
 
 /* Área de Contenido Principal (Scrollable) */
@@ -394,88 +399,6 @@ body.thc-overlay-active {
   border: none !important;
 }
 
-#thc-optimizer-overlay .thc-details-wrapper {
-  padding: 24px 40px;
-  border-left: 4px solid #f9370d;
-  background: rgba(14, 18, 24, 0.8);
-  border-top: 1px solid rgba(255, 255, 255, 0.03);
-}
-
-#thc-optimizer-overlay .thc-details-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 40px;
-}
-
-#thc-optimizer-overlay .thc-details-rules h3,
-#thc-optimizer-overlay .thc-details-prizes h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #f9370d;
-  margin-top: 0;
-  margin-bottom: 16px;
-  border-bottom: 1px solid rgba(249, 55, 13, 0.2);
-  padding-bottom: 8px;
-}
-
-#thc-optimizer-overlay .thc-rules-content {
-  font-size: 14px;
-  line-height: 1.6;
-  color: #cbd5e0;
-}
-
-#thc-optimizer-overlay .thc-rules-content h4 {
-  color: #ffffff;
-  font-size: 14px;
-  margin-top: 16px;
-  margin-bottom: 6px;
-}
-
-/* Estilos para Premios */
-#thc-optimizer-overlay .thc-prize-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-#thc-optimizer-overlay .thc-prize-item {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  padding: 10px 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-#thc-optimizer-overlay .thc-prize-rank {
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #a0aec0;
-}
-
-#thc-optimizer-overlay .thc-prize-rewards {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-#thc-optimizer-overlay .thc-reward-trophy {
-  color: #ecc94b;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-#thc-optimizer-overlay .thc-reward-gold {
-  color: #f6e05e;
-  font-size: 13px;
-  font-weight: 600;
-  background: rgba(246, 224, 94, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
 /* Estados Vacíos y Errores */
 #thc-optimizer-overlay .thc-no-results,
 #thc-optimizer-overlay .thc-loading {
@@ -529,37 +452,6 @@ body.thc-overlay-active {
   background: rgba(249, 55, 13, 0.3);
 }
 
-/* Estilos para el Leaderboard (Clasificación) y Botones de Unirse */
-.thc-details-header-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  border-bottom: 1px solid rgba(249, 55, 13, 0.2);
-  padding-bottom: 8px;
-}
-
-.thc-details-header-actions h3 {
-  margin: 0 !important;
-  border-bottom: none !important;
-  padding-bottom: 0 !important;
-}
-
-.thc-leaderboard-section {
-  margin-top: 40px !important;
-}
-
-.thc-leaderboard-table th {
-  font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.thc-leaderboard-table tr:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
 .thc-leaderboard-loading {
   display: flex;
   align-items: center;
@@ -575,158 +467,6 @@ body.thc-overlay-active {
   border-width: 2px !important;
   margin: 0 !important;
 }
-
-#thc-optimizer-overlay .thc-btn-join {
-  background: linear-gradient(135deg, #f9370d, #b82200) !important;
-  color: #ffffff !important;
-  border: none !important;
-  padding: 6px 16px !important;
-  font-weight: 600 !important;
-  transition: all 0.2s ease !important;
-  border-radius: 8px !important;
-}
-
-#thc-optimizer-overlay .thc-btn-join:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(249, 55, 13, 0.3);
-}
-
-#thc-optimizer-overlay .thc-btn-join:active {
-  transform: translateY(0);
-}
-
-#thc-optimizer-overlay .thc-btn-leave {
-  background: rgba(79, 209, 197, 0.1) !important;
-  border: 1px solid rgba(79, 209, 197, 0.3) !important;
-  color: #4fd1c5 !important;
-  padding: 6px 16px !important;
-  border-radius: 8px !important;
-  font-family: 'Outfit', sans-serif !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  display: inline-block !important;
-}
-
-#thc-optimizer-overlay .thc-btn-leave:hover {
-  background: rgba(252, 129, 129, 0.1) !important;
-  border-color: rgba(252, 129, 129, 0.4) !important;
-  color: #fc8181 !important;
-  box-shadow: 0 4px 12px rgba(252, 129, 129, 0.2) !important;
-}
-
-
-/* Estilos para el Historial de Competiciones */
-.thc-history-section h3 {
-  font-size: 16px;
-  font-weight: 600;
-  color: #f9370d;
-  margin-top: 0;
-  margin-bottom: 16px;
-  border-bottom: 1px solid rgba(249, 55, 13, 0.2);
-  padding-bottom: 8px;
-}
-
-.thc-history-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 16px 20px;
-  max-width: 280px;
-}
-
-.thc-history-year-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.thc-history-year-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #ffffff;
-  border-left: 2px solid #f9370d;
-  padding-left: 8px;
-  margin-bottom: 4px;
-}
-
-.thc-history-months-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-left: 10px;
-}
-
-.thc-history-month-row {
-  display: flex;
-  align-items: center;
-  font-size: 13px;
-}
-
-.thc-history-month-name {
-  color: #a0aec0;
-  font-weight: 500;
-  min-width: 90px;
-  display: inline-block;
-}
-
-.thc-history-days-list {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.thc-history-day-link {
-  color: #f9370d;
-  text-decoration: none;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.thc-history-day-link:hover {
-  color: #ff6b4a;
-  background: rgba(249, 55, 13, 0.05);
-  border-color: rgba(249, 55, 13, 0.2);
-}
-
-.thc-history-day-link.active {
-  color: #ffffff !important;
-  background: rgba(249, 55, 13, 0.2) !important;
-  border-color: rgba(249, 55, 13, 0.4) !important;
-  font-weight: 700 !important;
-}
-
-/* Estilos para el toggle colapsable del Historial */
-.thc-history-toggle {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  user-select: none;
-  transition: color 0.2s ease;
-  max-width: 280px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.thc-history-toggle:hover {
-  color: #ff6b4a !important;
-}
-
-.thc-history-arrow {
-  font-size: 12px;
-  color: #718096;
-  margin-left: 8px;
-  transition: transform 0.2s ease;
-}
-
 
 /* Selector de diseño */
 #thc-optimizer-overlay .thc-design-switch { display:inline-flex; margin-left:16px; border:1px solid #444; background:#202020; }
@@ -769,7 +509,7 @@ body.thc-classic-design-active .thc-toggle-btn { border-radius:2px; background:#
 .thc-classic-group.collapsed .thc-classic-details-row,
 .thc-classic-group.collapsed .thc-classic-empty-row { display:none; }
 
-.thc-classic-item td { padding:5px 8px; border-bottom:4px solid #151515; background:#292929; vertical-align:middle; overflow:hidden; }
+.thc-classic-item td { padding:5px 8px; border-bottom:1px solid rgba(249,55,13,.45); background:#292929; vertical-align:middle; overflow:hidden; }
 .thc-classic-item:hover td,
 .thc-classic-item.expanded td { background:#303030; }
 .thc-classic-count { display:block; padding:3px 7px; border-radius:12px; background:#454545; color:#ddd; text-align:center; font-weight:400; }
@@ -787,48 +527,13 @@ body.thc-classic-design-active .thc-toggle-btn { border-radius:2px; background:#
 
 .thc-classic-details-row { display:none; }
 .thc-classic-details-row.active { display:table-row; }
-.thc-classic-details-row > td { padding:0; border-bottom:4px solid #151515; background:#202020; }
-.thc-classic-details { position:relative; padding:14px 18px 16px; color:#ccc; }
-.thc-classic-detail-actions { position:absolute; top:12px; right:18px; }
-#thc-optimizer-overlay[data-design="classic"] .thc-rules-content { color:#ccc; font:400 13px/1.45 Arial,Helvetica,sans-serif; }
-#thc-optimizer-overlay[data-design="classic"] .thc-rules-content h4 { margin:12px 0 3px; padding:0; color:#e5e5e5; font-size:13px; font-weight:600; }
-#thc-optimizer-overlay[data-design="classic"] .thc-rules-content h4:first-child { margin-top:0; }
-#thc-optimizer-overlay[data-design="classic"] .thc-rules-content p,
-#thc-optimizer-overlay[data-design="classic"] .thc-rules-content ul,
-#thc-optimizer-overlay[data-design="classic"] .thc-rules-content ol { margin:0 0 7px; }
-#thc-optimizer-overlay[data-design="classic"] .thc-rules-content strong { color:#ddd; font-weight:600; }
-
-.thc-classic-columns { display:grid; grid-template-columns:1fr 1.25fr .75fr; gap:20px; margin-top:14px; padding-top:12px; border-top:1px solid #3a3a3a; }
-#thc-optimizer-overlay[data-design="classic"] .thc-classic-details h3,
-#thc-optimizer-overlay[data-design="classic"] .thc-classic-detail-toggle { margin:0 0 8px; padding:0 0 6px; border:0; border-bottom:1px solid #3a3a3a; background:transparent; color:#ddd; font:600 13px Arial,sans-serif; text-align:left; }
-.thc-classic-detail-toggle { width:100%; display:flex; justify-content:space-between; cursor:pointer; }
-.thc-classic-detail-arrow { color:#aaa; font-size:11px; }
-.thc-classic-collapsible-content { padding-top:4px; }
-#thc-optimizer-overlay[data-design="classic"] .thc-prize-list { gap:5px; }
-.thc-classic-prize-table { width:100%; border-collapse:collapse; table-layout:fixed; }
-.thc-classic-prize-table td { padding:7px 10px; border:1px solid #3d3d3d; background:#282828; color:#ccc; font-size:12px; font-weight:400; }
-.thc-classic-prize-table td:first-child { width:72px; }
-.thc-classic-prize-table td:last-child { width:64px; text-align:right; white-space:nowrap; }
-
-#thc-optimizer-overlay[data-design="classic"] .thc-prize-item { padding:7px 9px; border:1px solid #3d3d3d; border-radius:2px; background:#282828; }
-#thc-optimizer-overlay[data-design="classic"] .thc-prize-rank,
-#thc-optimizer-overlay[data-design="classic"] .thc-reward-trophy,
-#thc-optimizer-overlay[data-design="classic"] .thc-reward-gold { color:#ccc; font-size:12px; font-weight:400; text-transform:none; }
-#thc-optimizer-overlay[data-design="classic"] .thc-reward-gold { padding:0; background:transparent; }
-#thc-optimizer-overlay[data-design="classic"] .thc-btn,
-#thc-optimizer-overlay[data-design="classic"] .thc-btn-join,
-#thc-optimizer-overlay[data-design="classic"] .thc-btn-leave { padding:6px 12px !important; border:1px solid #555 !important; border-radius:2px !important; background:#383838 !important; box-shadow:none !important; color:#ddd !important; font:500 12px Arial,sans-serif !important; }
-#thc-optimizer-overlay[data-design="classic"] .thc-btn:hover,
-#thc-optimizer-overlay[data-design="classic"] .thc-btn-join:hover,
-#thc-optimizer-overlay[data-design="classic"] .thc-btn-leave:hover { transform:none !important; background:#454545 !important; color:#fff !important; }
-#thc-optimizer-overlay[data-design="classic"] .thc-history-day-link { color:#bbb; font-weight:500; }
+.thc-classic-details-row > td { padding:0; border-bottom:1px solid rgba(249,55,13,.45); background:#202020; }
 #thc-optimizer-overlay[data-design="classic"] .thc-empty-note { color:#888; font-size:12px; }
 
 @media (max-width:1050px) {
   .thc-classic-table .thc-col-species { width:18%; }
   .thc-classic-table .thc-col-competition { width:28%; }
   .thc-classic-table .thc-col-reserves { width:38%; }
-  .thc-classic-columns { grid-template-columns:1fr; }
 }
 
 /* FILTROS RÁPIDOS POR ICONOS (Especies y Reservas) */
@@ -901,3 +606,20 @@ body.thc-classic-design-active .thc-toggle-btn { border-radius:2px; background:#
   transform: scale(1.05);
 }
 
+#thc-quick-species-container {
+  flex-wrap: wrap;
+}
+
+#thc-quick-reserves-container {
+  flex-wrap: nowrap;
+  min-height: 40px;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+/* Detalle oficial real */
+#thc-official-detail-pool { position:absolute; width:0; height:0; overflow:hidden; visibility:hidden; }
+.thc-official-detail-host { display:block; width:100%; min-height:120px; background:#111; }
+.thc-official-detail-frame { display:block; visibility:hidden; width:100%; height:0; min-height:0; border:0; background:#111; }
+.thc-official-detail-loaded .thc-official-detail-frame { visibility:visible; min-height:420px; }
+.thc-official-detail-error { padding:24px; color:#fc8181; text-align:center; }

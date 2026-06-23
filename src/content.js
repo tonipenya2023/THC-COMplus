@@ -13,37 +13,31 @@ let lastHash = null; // Evitar llamadas duplicadas
 
 let userAccessToken = '';
 let userCompetitionStates = {}; // key: id, value: state (0=not joinable, 1=joinable, 2=joined)
-let competitionHistoryCache = {}; // Caché para almacenar el historial completo de las competiciones
+let officialDetailFrame = null;
+let officialDetailLoadToken = 0;
 
 let activeDesign = localStorage.getItem('thc-competition-design') || 'modern';
 let classicSort = { key: 'name', direction: 'asc' };
 
 const ANIMAL_ICON_FILES = {
-  'ibice alpino': 'ibice-alpino.png', 'anade sombrio americano': 'anade-sombrio-americano.png',
-  'zorro artico': 'arctic-fox-male-common.png', 'ciervo axis': 'axis-deer-male-common.png',
-  'banteng': 'banteng-male-common.png', 'muflon canadiense': 'muflon-canadiense.png',
-  'bisonte': 'bisonte.png', 'oso negro': 'oso-negro.png',
-  'ciervo de cola negra': 'ciervo-de-cola-negra.png', 'lince rojo': 'bobcat-male-common.png',
-  'oso pardo': 'brown-bear-male-common.png', 'ganso de canada': 'canada-goose-male-common.png',
-  'conejo cola de algodon': 'conejo-cola-de-algodon.png', 'coyote': 'coyote-male-common.png',
-  'carnero de dall': 'carnero-de-dall.png', 'lince boreal': 'eurasian-lynx-male-common.png',
-  'conejo europeo': 'conejo-europeo.png', 'gamo': 'gamo.png', 'cabra salvaje': 'cabra-salvaje.png',
-  'cerdo salvaje': 'feral-hog-male-common.png', 'anade friso': 'anade-friso.png',
-  'lobo gris': 'grey-wolf-male-common.png', 'oso grizzly': 'oso-grizzly.png',
-  'ganso urraco': 'ganso-urraco.png', 'anade real': 'anade-real.png', 'alce': 'moose-male-common.png',
-  'ciervo mulo': 'ciervo-mulo.png', 'anade rabudo': 'anade-rabudo.png',
-  'faisan': 'pheasant-male-common.png', 'oso polar': 'polar-bear-male-common.png',
-  'puma': 'puma-male-common.png', 'ciervo rojo': 'red-deer-male-common.png',
-  'zorro rojo': 'red-fox-male-common.png', 'canguro rojo': 'canguro-rojo.png',
-  'reno': 'reindeer-male-common.png', 'perdiz nival': 'rock-ptarmigan-male-common.png',
-  'wapiti de las rocosas': 'wapiti-de-las-rocosas.png', 'corzo': 'roe-deer-male-common.png',
-  'wapiti de roosevelt': 'roosevelt-elk-male-common.png', 'ciervo de timor': 'rusa-deer-male-common.png',
-  'ciervo sambar': 'sambar-deer-male-common.png', 'ciervo sitka': 'ciervo-sitka.png',
-  'ganso nival': 'ganso-nival.png', 'liebre americana': 'liebre-americana.png',
-  'pavo': 'turkey-male-common.png', 'bufalo de agua': 'water-buffalo-male-common.png',
-  'ciervo de cola blanca': 'ciervo-de-cola-blanca.png', 'perdiz de cola blanca': 'perdiz-de-cola-blanca.png',
-  'jabali': 'jabali.png', 'perdiz nival de la tundra': 'perdiz-nival-de-la-tundra.png',
-  'urogallo comun': 'urogallo-comun.png'
+  'alce': 'moose-male-common.png', 'banteng': 'banteng-male-common.png', 'bisonte': 'bisonte.png',
+  'bufalo de agua': 'water-buffalo-male-common.png', 'cabra salvaje': 'cabra-salvaje.png', 'canguro rojo': 'canguro-rojo.png',
+  'carnero de dall': 'carnero-de-dall.png', 'cerdo salvaje': 'feral-hog-male-common.png', 'ciervo axis': 'axis-deer-male-common.png',
+  'ciervo mulo': 'ciervo-mulo.png', 'ciervo rojo': 'red-deer-male-common.png', 'ciervo sambar': 'sambar-deer-male-common.png',
+  'ciervo sitka': 'ciervo-sitka.png', 'ciervo de cola blanca': 'ciervo-de-cola-blanca.png', 'ciervo de cola negra': 'ciervo-de-cola-negra.png',
+  'ciervo de timor': 'rusa-deer-male-common.png', 'conejo europeo': 'conejo-europeo.png', 'conejo cola de algodon': 'conejo-cola-de-algodon.png',
+  'corzo': 'roe-deer-male-common.png', 'corzonejo': 'roe-bit-male-common.png', 'coyote': 'coyote-male-common.png',
+  'faisan': 'pheasant-male-common.png', 'gamo': 'gamo.png', 'ganso nival': 'ganso-nival.png',
+  'ganso urraco': 'ganso-urraco.png', 'ganso de canada': 'canada-goose-male-common.png', 'hombre lobo': 'werewolf-male-common.png',
+  'jabali': 'jabali.png', 'liebre americana': 'liebre-americana.png', 'lince rojo': 'bobcat-male-common.png',
+  'lince boreal': 'eurasian-lynx-male-common.png', 'lobo gris': 'grey-wolf-male-common.png', 'muflon canadiense': 'muflon-canadiense.png',
+  'oso grizzly': 'oso-grizzly.png', 'oso negro': 'oso-negro.png', 'oso pardo': 'brown-bear-male-common.png',
+  'oso polar': 'polar-bear-male-common.png', 'pavo': 'turkey-male-common.png', 'perdiz nival': 'rock-ptarmigan-male-common.png',
+  'perdiz nival de la tundra': 'perdiz-nival-de-la-tundra.png', 'perdiz de cola blanca': 'perdiz-de-cola-blanca.png', 'puma': 'puma-male-common.png',
+  'reno': 'reindeer-male-common.png', 'wapiti de roosevelt': 'roosevelt-elk-male-common.png', 'wapiti de las rocosas': 'wapiti-de-las-rocosas.png',
+  'urogallo comun': 'urogallo-comun.png', 'zorro rojo': 'red-fox-male-common.png',
+  'zorro artico': 'arctic-fox-male-common.png', 'anade friso': 'anade-friso.png', 'anade rabudo': 'anade-rabudo.png',
+  'anade real': 'anade-real.png', 'anade sombrio americano': 'anade-sombrio-americano.png', 'ibice alpino': 'ibice-alpino.png'
 };
 
 const RESERVE_ICON_FILES = {
@@ -138,7 +132,7 @@ async function loadUserCompetitionStates() {
       const states = await response.json();
       userCompetitionStates = {};
       states.forEach(s => {
-        userCompetitionStates[s.id] = s.state;
+        userCompetitionStates[s.id] = Number(s.state);
       });
       console.log("[THC Addon] Estados de competición cargados:", Object.keys(userCompetitionStates).length);
     }
@@ -241,30 +235,6 @@ function createOverlay() {
             <span class="thc-search-icon">🔍</span>
             <input type="text" id="thc-search" class="thc-search-input" placeholder="Buscar por nombre, animal, mapa...">
           </div>
-          <div class="thc-select-wrapper">
-            <select id="thc-filter-mapa" class="thc-filter-select">
-              <option value="">Todas las Reservas</option>
-            </select>
-          </div>
-          <div class="thc-select-wrapper">
-            <select id="thc-filter-especie" class="thc-filter-select">
-              <option value="">Todas las Especies</option>
-            </select>
-          </div>
-          <div class="thc-select-wrapper">
-            <select id="thc-filter-estado" class="thc-filter-select">
-              <option value="all">Cualquier Estado</option>
-              <option value="active">En curso</option>
-              <option value="upcoming">Próximas</option>
-            </select>
-          </div>
-          <div class="thc-select-wrapper">
-            <select id="thc-filter-orden" class="thc-filter-select">
-              <option value="time_asc">Tiempo restante (menor primero)</option>
-              <option value="entrants_desc">Participantes (más popular)</option>
-              <option value="name_asc">Nombre (A-Z)</option>
-            </select>
-          </div>
           <div class="thc-stats-badge" id="thc-stats">0 competiciones</div>
         </div>
         <div class="thc-quick-filters-container">
@@ -290,6 +260,7 @@ function createOverlay() {
   `;
   
   document.body.appendChild(overlay);
+  initializeOfficialDetailFrame();
   
   // Evitar que clics, mousedown, mouseup, pointerdown o pointerup dentro del overlay se propaguen al sitio nativo (previene interferencias de Backbone)
   ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup'].forEach(eventName => {
@@ -311,97 +282,7 @@ function createOverlay() {
     applyFilters();
   });
   
-  document.getElementById('thc-filter-mapa').addEventListener('change', (e) => {
-    activeFilters.mapa = e.target.value;
-    applyFilters();
-  });
-  
-  document.getElementById('thc-filter-especie').addEventListener('change', (e) => {
-    activeFilters.especie = e.target.value;
-    applyFilters();
-  });
-  
-  document.getElementById('thc-filter-estado').addEventListener('change', (e) => {
-    activeFilters.estado = e.target.value;
-    applyFilters();
-  });
-  document.getElementById('thc-filter-orden').addEventListener('change', (e) => {
-    activeFilters.orden = e.target.value;
-    applyFilters();
-  });
 
-  // Delegación de eventos en el contenedor de competiciones
-  const compContainer = document.getElementById('thc-comp-container');
-  if (compContainer) {
-    compContainer.addEventListener('click', (e) => {
-      // Delegación para colapsables clásicos (Clasificación/Historial)
-      const classicDetailToggle = e.target.closest('.thc-classic-detail-toggle');
-      if (classicDetailToggle) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        const content = classicDetailToggle.nextElementSibling;
-        const arrow = classicDetailToggle.querySelector('.thc-classic-detail-arrow');
-        if (content && arrow) {
-          const collapsed = content.style.display === 'none';
-          content.style.display = collapsed ? 'block' : 'none';
-          arrow.textContent = collapsed ? '▼' : '▶';
-        }
-        return;
-      }
-
-      // 1. Delegación para colapsar/desplegar el historial
-      const toggle = e.target.closest('.thc-history-toggle');
-      if (toggle) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        const section = toggle.closest('.thc-history-section');
-        const container = section.querySelector('.thc-history-container');
-        const arrow = toggle.querySelector('.thc-history-arrow');
-        if (container && arrow) {
-          const isCollapsed = container.style.display === 'none';
-          if (isCollapsed) {
-            container.style.display = 'block';
-            arrow.textContent = '▼';
-          } else {
-            container.style.display = 'none';
-            arrow.textContent = '▶';
-          }
-        }
-        return;
-      }
-
-      // 2. Delegación para enlaces del historial (días)
-      const dayLink = e.target.closest('.thc-history-day-link');
-      if (dayLink) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        const rowId = dayLink.getAttribute('data-row-id');
-        const targetId = dayLink.getAttribute('data-target-id');
-        console.log(`[THC Addon] Clic en día de historial detectado. Fila: ${rowId}, Destino: ${targetId}`);
-        loadDetailsForId(rowId, targetId);
-        return;
-      }
-
-      // 3. Delegación para botones de Unirse y Salir
-      const btn = e.target.closest('button');
-      if (btn) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        if (btn.classList.contains('thc-btn-join')) {
-          const compId = btn.getAttribute('data-id');
-          joinCompetition(compId, btn);
-        } else if (btn.classList.contains('thc-btn-leave')) {
-          const compId = btn.getAttribute('data-id');
-          leaveCompetition(compId, btn);
-        }
-        return;
-      }
-    });
-  }
 }
 
 function openOverlay() {
@@ -483,7 +364,7 @@ async function loadCompetitions() {
     });
     
     // Rellenar selectores de mapas y especies dinámicamente
-    populateFiltersDropdowns();
+    renderQuickFilters(); 
     
     // Cargar estados del usuario
     await loadUserCompetitionStates();
@@ -585,13 +466,21 @@ function applyFilters() {
     }
     
     // 2. Filtro de Reserva
-    if (activeFilters.mapa && comp.parsedRules.reserva !== activeFilters.mapa) {
-      return false;
+    if (activeFilters.mapa) {
+      const filterNorm = normalizeIconName(activeFilters.mapa);
+      const compNorm = normalizeIconName(comp.parsedRules.reserva);
+      if (!compNorm.includes(filterNorm)) {
+        return false;
+      }
     }
     
     // 3. Filtro de Especie
-    if (activeFilters.especie && comp.parsedRules.especie !== activeFilters.especie) {
-      return false;
+    if (activeFilters.especie) {
+      const filterNorm = normalizeIconName(activeFilters.especie);
+      const compNorm = normalizeIconName(comp.parsedRules.especie);
+      if (!compNorm.includes(filterNorm)) {
+        return false;
+      }
     }
     
     // 4. Filtro de Estado
@@ -628,10 +517,12 @@ function applyFilters() {
 
 // Renderizar la UI con la lista filtrada (Formato Tabla Premium)
 function renderCompetitions(competitions) {
+  parkOfficialDetailFrame();
   const container = document.getElementById('thc-comp-container');
   const statsBadge = document.getElementById('thc-stats');
 
   if (activeDesign === 'classic') {
+    statsBadge.textContent = `${competitions.length} competición${competitions.length !== 1 ? 'es' : ''}`;
     renderClassicCompetitions(competitions, container);
     return;
   }
@@ -666,6 +557,7 @@ function renderCompetitions(competitions) {
   `;
   
   tableHtml += competitions.map(comp => {
+    const instanceId = comp.id;
     const isUpcoming = now < comp.start;
     const timeLeft = isUpcoming ? comp.start - now : comp.end - now;
     
@@ -673,7 +565,7 @@ function renderCompetitions(competitions) {
     const timerLabel = isUpcoming ? 'Empieza en:' : 'Tiempo restante:';
     
     return `
-      <tr class="thc-table-row" id="row-${comp.id}">
+      <tr class="thc-table-row" id="row-${instanceId}" data-comp-id="${comp.id}">
         <td class="thc-td-info">
           <div class="thc-table-comp-info">
             <img src="${comp.image}" alt="${comp.name}" class="thc-table-img" onerror="this.src='https://static.thehunter.com/static/img/competitions/compimages/comp_weight.png'">
@@ -696,55 +588,13 @@ function renderCompetitions(competitions) {
           </div>
         </td>
         <td style="text-align: center;">
-          <button class="thc-btn thc-btn-details" data-target="${comp.id}">Reglas</button>
+          <button class="thc-btn thc-btn-details" data-target="${instanceId}" data-competition="${comp.id}">Reglas</button>
         </td>
       </tr>
       
-      <!-- Fila de Detalles Desplegable -->
-      <tr class="thc-comp-details-panel" id="details-${comp.id}">
-        <td colspan="7">
-          <div class="thc-details-wrapper">
-            <div class="thc-details-grid">
-              <div class="thc-details-rules">
-                <div class="thc-details-header-actions">
-                  <h3>Detalles y Reglas Completas</h3>
-                  <div id="join-btn-container-${comp.id}">
-                    ${renderJoinButton(comp)}
-                  </div>
-                </div>
-                <div class="thc-rules-content" id="rules-content-${comp.id}">
-                  <strong>Puntuación:</strong> ${comp.parsedRules.puntuacion}<br>
-                  <strong>Requisitos Especiales:</strong> ${comp.parsedRules.requisitos}<br>
-                  <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 12px 0;">
-                  ${comp.rulesHtml}
-                </div>
-                
-                <div class="thc-history-section" style="margin-top: 40px;">
-                  <h3 class="thc-history-toggle" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; max-width: 280px; width: 100%; box-sizing: border-box;">
-                    <span>Historial</span>
-                    <span class="thc-history-arrow">▶</span>
-                  </h3>
-                  <div class="thc-history-container" id="history-${comp.id}" style="display: none;">
-                    <!-- Se carga dinámicamente -->
-                  </div>
-                </div>
-              </div>
-              <div class="thc-details-prizes">
-                <h3>Recompensas</h3>
-                <div class="thc-prize-list" id="prizes-list-${comp.id}">
-                  ${renderPrizesFull(comp.prizes)}
-                </div>
-                
-                <div class="thc-leaderboard-section">
-                  <h3>Clasificación</h3>
-                  <div class="thc-leaderboard-container" id="leaderboard-${comp.id}">
-                    <!-- Se carga dinámicamente -->
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </td>
+      <!-- Detalle oficial desplegable -->
+      <tr class="thc-comp-details-panel" id="details-${instanceId}">
+        <td colspan="7"><div class="thc-official-detail-host"></div></td>
       </tr>
     `;
   }).join('');
@@ -761,13 +611,14 @@ function renderCompetitions(competitions) {
   detailButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       const id = e.target.getAttribute('data-target');
-      toggleDetailsPanel(id);
+      const competitionId = e.target.getAttribute('data-competition');
+      toggleDetailsPanel(id, competitionId);
     });
   });
 }
 
 // Alternar panel de detalles (Fila de tabla expandida)
-function toggleDetailsPanel(id) {
+function toggleDetailsPanel(id, competitionId = id) {
   const panel = document.getElementById(`details-${id}`);
   const row = document.getElementById(`row-${id}`);
   if (panel) {
@@ -785,464 +636,129 @@ function toggleDetailsPanel(id) {
       panel.classList.add('active');
       if (row) row.classList.add('expanded');
       
-      // Cargar clasificación e historial
-      loadDetailsForId(id, id);
+      loadOfficialCompetitionDetails(panel, competitionId);
     }
   }
 }
 
-// Renderizar el botón de unirse/salir de la competición comprobando su estado y finalización
-function renderJoinButton(comp) {
-  const now = Date.now() / 1000;
-  const isFinished = comp.finished === 1 || now > comp.end;
-  
-  // Si la competición ya ha finalizado, no mostramos el botón
-  if (isFinished) {
-    return '';
+function initializeOfficialDetailFrame() {
+  const overlay = document.getElementById('thc-optimizer-overlay');
+  if (!overlay) return null;
+  let pool = document.getElementById('thc-official-detail-pool');
+  if (!pool) {
+    pool = document.createElement('div');
+    pool.id = 'thc-official-detail-pool';
+    overlay.appendChild(pool);
   }
+  if (!officialDetailFrame || !document.contains(officialDetailFrame)) {
+    officialDetailFrame = document.createElement('iframe');
+    officialDetailFrame.className = 'thc-official-detail-frame';
+    officialDetailFrame.title = 'Detalle oficial de la competición';
+    officialDetailFrame.src = `${window.location.origin}/#competitions`;
+    pool.appendChild(officialDetailFrame);
+  }
+  return officialDetailFrame;
+}
 
-  const state = userCompetitionStates[comp.id];
-  if (state === 2) {
-    return `<button class="thc-btn thc-btn-leave" data-id="${comp.id}"><span>✓ Inscrito</span></button>`;
-  } else if (state === 1) {
-    return `<button class="thc-btn thc-btn-join" data-id="${comp.id}">Unirse</button>`;
-  } else {
-    // Si el estado es 0 (no cualificado) o no está definido, no mostramos ningún botón
-    return '';
+function parkOfficialDetailFrame() {
+  officialDetailLoadToken++;
+  const pool = document.getElementById('thc-official-detail-pool');
+  if (officialDetailFrame && pool && officialDetailFrame.parentElement !== pool) {
+    const previousHost = officialDetailFrame.closest('.thc-official-detail-host');
+    if (previousHost) {
+      previousHost.removeAttribute('data-competition-id');
+      previousHost.closest('.thc-official-detail-loaded')?.classList.remove('thc-official-detail-loaded');
+    }
+    pool.appendChild(officialDetailFrame);
   }
 }
 
-// Unirse a una competición llamando a la API oficial
-async function joinCompetition(compId, btn) {
-  if (!userAccessToken) {
-    alert("Error: No se ha detectado el token de autenticación. Por favor, inicia sesión.");
-    return;
-  }
-  
-  btn.disabled = true;
-  btn.textContent = "Uniéndose...";
-  
+function loadOfficialCompetitionDetails(panel, competitionId) {
+  if (!panel) return;
+  const host = panel.querySelector('.thc-official-detail-host');
+  const iframe = initializeOfficialDetailFrame();
+  if (!host || !iframe) return;
+  if (iframe.parentElement === host && host.getAttribute('data-competition-id') === String(competitionId)) return;
+
+  parkOfficialDetailFrame();
+  const loadToken = ++officialDetailLoadToken;
+  panel.classList.remove('thc-official-detail-loaded');
+  host.setAttribute('data-competition-id', competitionId);
+  host.innerHTML = '<div class="thc-leaderboard-loading"><div class="thc-loading-spinner thc-loading-spinner-small"></div>Cargando detalle oficial...</div>';
+  host.appendChild(iframe);
+
+  const targetHash = `#competitions/details/${competitionId}`;
   try {
-    const response = await fetch('https://api.thehunter.com/v1/Competition/join', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: `id=${compId}&oauth_access_token=${userAccessToken}`
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const result = await response.json();
-    
-    if (result === true) {
-      // Éxito al unirse
-      btn.className = "thc-btn thc-btn-leave";
-      btn.innerHTML = "<span>✓ Inscrito</span>";
-      btn.disabled = false;
-      userCompetitionStates[compId] = 2; // Actualizar estado a JOINED
-      
-      // Incrementar el contador de inscritos en la tabla principal
-      const row = document.getElementById(`row-${compId}`);
-      if (row) {
-        const entrantsSpan = row.querySelector('.thc-entrants-count');
-        if (entrantsSpan) {
-          const currentCount = parseInt(entrantsSpan.textContent) || 0;
-          entrantsSpan.textContent = currentCount + 1;
-        }
-      }
-      
-      // Recargar el leaderboard de esta competición
-      const container = document.getElementById(`leaderboard-${compId}`);
-      if (container) {
-        container.removeAttribute('data-loaded-id');
-        loadDetailsForId(compId, compId);
-      }
+    if (iframe.contentWindow && iframe.contentWindow.location.origin === window.location.origin) {
+      iframe.contentWindow.location.hash = targetHash;
     } else {
-      throw new Error("La API devolvió false");
+      iframe.src = `${window.location.origin}/${targetHash}`;
     }
   } catch (error) {
-    console.error('Error al unirse a la competición:', error);
-    alert(`Error al inscribirse: ${error.message}`);
-    btn.disabled = false;
-    btn.className = "thc-btn thc-btn-join";
-    btn.textContent = "Unirse";
+    iframe.src = `${window.location.origin}/${targetHash}`;
   }
-}
 
-// Salir de una competición llamando a la API oficial
-async function leaveCompetition(compId, btn) {
-  if (!userAccessToken) {
-    alert("Error: No se ha detectado el token de autenticación. Por favor, inicia sesión.");
-    return;
-  }
-  
-  btn.disabled = true;
-  const originalHtml = btn.innerHTML;
-  btn.textContent = "Saliendo...";
-  
-  try {
-    const response = await fetch('https://api.thehunter.com/v1/Competition/leave', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: `id=${compId}&oauth_access_token=${userAccessToken}`
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  let attempts = 0;
+  const waitForDetail = setInterval(() => {
+    if (loadToken !== officialDetailLoadToken) {
+      clearInterval(waitForDetail);
+      return;
     }
-    
-    const result = await response.json();
-    
-    if (result === true) {
-      // Éxito al salir
-      btn.className = "thc-btn thc-btn-join";
-      btn.textContent = "Unirse";
-      btn.disabled = false;
-      userCompetitionStates[compId] = 1; // Actualizar estado a JOINABLE
-      
-      // Decrementar el contador de inscritos en la tabla principal
-      const row = document.getElementById(`row-${compId}`);
-      if (row) {
-        const entrantsSpan = row.querySelector('.thc-entrants-count');
-        if (entrantsSpan) {
-          const currentCount = parseInt(entrantsSpan.textContent) || 0;
-          entrantsSpan.textContent = Math.max(0, currentCount - 1);
+    attempts++;
+    try {
+      const frameDocument = iframe.contentDocument;
+      const officialDetail = frameDocument && frameDocument.getElementById('CompetitionDetails');
+      const targetLink = officialDetail && officialDetail.querySelector(`a[href="${targetHash}"]`);
+      if (!officialDetail || !targetLink) {
+        if (attempts >= 200) {
+          clearInterval(waitForDetail);
+          host.removeAttribute('data-competition-id');
+          host.innerHTML = '<div class="thc-official-detail-error">No se pudo cargar el detalle oficial.</div>';
+          parkOfficialDetailFrame();
         }
+        return;
       }
-      
-      // Recargar el leaderboard de esta competición
-      const container = document.getElementById(`leaderboard-${compId}`);
-      if (container) {
-        container.removeAttribute('data-loaded-id');
-        loadDetailsForId(compId, compId);
-      }
-    } else {
-      throw new Error("La API devolvió false");
-    }
-  } catch (error) {
-    console.error('Error al salir de la competición:', error);
-    alert(`Error al darse de baja: ${error.message}`);
-    btn.disabled = false;
-    btn.className = "thc-btn thc-btn-leave";
-    btn.innerHTML = originalHtml;
-  }
-}
 
-// Cargar los detalles, clasificación e historial desde la API nativa
-async function loadDetailsForId(rowId, targetId) {
-  console.log(`[THC Addon] loadDetailsForId llamado. Fila: ${rowId}, Edición: ${targetId}`);
-  const lbContainer = document.getElementById(`leaderboard-${rowId}`);
-  const histContainer = document.getElementById(`history-${rowId}`);
-  if (!lbContainer) {
-    console.error(`[THC Addon] No se encontró el contenedor de clasificación para Fila: ${rowId}`);
-    return;
-  }
-  
-  if (lbContainer.getAttribute('data-loaded-id') === targetId) {
-    console.log(`[THC Addon] Edición ${targetId} ya cargada para la Fila ${rowId}. Ignorando.`);
-    return;
-  }
-  
-  // Mostrar estados de carga
-  lbContainer.innerHTML = `
-    <div class="thc-leaderboard-loading">
-      <div class="thc-loading-spinner thc-loading-spinner-small"></div>
-      Cargando clasificación...
-    </div>
-  `;
-  
-  if (histContainer) {
-    histContainer.innerHTML = `
-      <div class="thc-leaderboard-loading">
-        <div class="thc-loading-spinner thc-loading-spinner-small"></div>
-        Cargando historial...
-      </div>
-    `;
-  }
-  
-  try {
-    console.log(`[THC Addon] Realizando fetch a competitions_new para id: ${targetId}`);
-    const response = await fetch('https://api.thehunter.com/v1/Page_content/competitions_new', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: `id=${targetId}&lang=es_ES&entrants_limit=100`
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log(`[THC Addon] Respuesta recibida de competitions_new. Info[0] exists: ${!!(data.info && data.info[0])}`);
-    
-    // 1. Actualizar el panel con la información específica de la edición seleccionada
-    if (data.info && data.info[0]) {
-      const activeComp = data.info[0];
-      
-      // Actualizar reglas completas
-      const rulesContainer = document.getElementById(`rules-content-${rowId}`);
-      if (rulesContainer) {
-        console.log(`[THC Addon] Actualizando reglas para Fila: ${rowId}`);
-        const parsed = parseRules(activeComp.type.rules);
-        rulesContainer.innerHTML = `
-          <strong>Puntuación:</strong> ${parsed.puntuacion}<br>
-          <strong>Requisitos Especiales:</strong> ${parsed.requisitos}<br>
-          <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 12px 0;">
-          ${activeComp.type.rules}
-        `;
-      }
-      
-      // Actualizar recompensas
-      const prizesContainer = document.getElementById(`prizes-list-${rowId}`);
-      if (prizesContainer) {
-        console.log(`[THC Addon] Actualizando recompensas para Fila: ${rowId}`);
-        prizesContainer.innerHTML = renderPrizesFull(activeComp.type.prizes || []);
-      }
-      
-      // Actualizar botón de inscripción
-      const btnContainer = document.getElementById(`join-btn-container-${rowId}`);
-      if (btnContainer) {
-        console.log(`[THC Addon] Actualizando botón de inscripción para Fila: ${rowId}`);
-        btnContainer.innerHTML = renderJoinButton(activeComp);
-      }
-    }
-    
-    // 2. Guardar en caché el historial completo (sólo la primera vez cuando no está en caché)
-    if (!competitionHistoryCache[rowId]) {
-      const allOccurrences = [];
-      // Agregar la edición actualmente consultada
-      if (data.info && data.info[0]) {
-        allOccurrences.push({
-          id: data.info[0].id,
-          start: data.info[0].start,
-          end: data.info[0].end,
-          finished: data.info[0].finished
+      clearInterval(waitForDetail);
+      let current = officialDetail;
+      while (current.parentElement && current.parentElement !== frameDocument.body) {
+        Array.from(current.parentElement.children).forEach(sibling => {
+          if (sibling !== current) sibling.style.display = 'none';
         });
+        current.parentElement.style.width = '100%';
+        current.parentElement.style.maxWidth = 'none';
+        current.parentElement.style.margin = '0';
+        current.parentElement.style.padding = '0';
+        current = current.parentElement;
       }
-      
-      // Agregar el historial previo sin duplicados
-      if (data.competitions && data.competitions.length > 0) {
-        data.competitions.forEach(c => {
-          if (!allOccurrences.some(o => o.id === c.id)) {
-            allOccurrences.push(c);
-          }
-        });
-      }
-      competitionHistoryCache[rowId] = allOccurrences;
-      console.log(`[THC Addon] Historial completo guardado en caché para Fila: ${rowId}. Ocurrencias: ${allOccurrences.length}`);
-    }
-    
-    // 3. Renderizar clasificación
-    console.log(`[THC Addon] Renderizando clasificación para Fila: ${rowId}`);
-    renderLeaderboardHtml(lbContainer, data, targetId);
-    lbContainer.setAttribute('data-loaded-id', targetId);
-    
-    // 4. Renderizar historial utilizando el historial completo de la caché
-    if (histContainer) {
-      console.log(`[THC Addon] Renderizando historial para Fila: ${rowId} desde caché`);
-      renderHistoryHtml(histContainer, competitionHistoryCache[rowId], rowId, targetId);
-    }
-  } catch (error) {
-    console.error('[THC Addon] Error cargando detalles/leaderboard:', error);
-    lbContainer.innerHTML = `<div style="color: #fc8181; font-size: 13px; margin-top: 10px;">⚠️ Error al cargar clasificación</div>`;
-    if (histContainer) {
-      histContainer.innerHTML = `<div style="color: #fc8181; font-size: 13px; margin-top: 10px;">⚠️ Error al cargar historial</div>`;
-    }
-  }
-}
-
-// Renderizar el historial de ediciones utilizando una lista precalculada de ocurrencias
-function renderHistoryHtml(container, occurrences, rowId, targetId) {
-  if (!occurrences || occurrences.length === 0) {
-    container.innerHTML = '<div style="color: #718096; font-size: 13px;">Sin información de historial.</div>';
-    return;
-  }
-  
-  const monthsEs = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-  
-  const yearsMap = {};
-  
-  occurrences.forEach(t => {
-    const date = new Date(t.end * 1000);
-    const y = date.getFullYear().toString();
-    const m = monthsEs[date.getMonth()];
-    const d = date.getDate().toString();
-    
-    if (!yearsMap[y]) {
-      yearsMap[y] = { year: y, monthsMap: {} };
-    }
-    
-    if (!yearsMap[y].monthsMap[m]) {
-      yearsMap[y].monthsMap[m] = { month: m, days: [] };
-    }
-    
-    if (!yearsMap[y].monthsMap[m].days.some(dayObj => dayObj.id === t.id)) {
-      yearsMap[y].monthsMap[m].days.push({
-        day: d,
-        id: t.id
+      Array.from(frameDocument.body.children).forEach(sibling => {
+        if (sibling !== current) sibling.style.display = 'none';
       });
-    }
-  });
-  
-  // Ordenar años, meses y días de forma descendente
-  const sortedYears = Object.keys(yearsMap)
-    .sort((a, b) => b - a)
-    .map(y => {
-      const months = Object.keys(yearsMap[y].monthsMap)
-        .sort((a, b) => {
-          const aIndex = monthsEs.indexOf(a);
-          const bIndex = monthsEs.indexOf(b);
-          return bIndex - aIndex;
-        })
-        .map(m => {
-          yearsMap[y].monthsMap[m].days.sort((a, b) => b.day - a.day);
-          return yearsMap[y].monthsMap[m];
-        });
-      return {
-        year: y,
-        months: months
+      frameDocument.documentElement.style.background = '#111';
+      frameDocument.documentElement.style.overflow = 'hidden';
+      frameDocument.body.style.background = '#111';
+      frameDocument.body.style.margin = '0';
+      frameDocument.body.style.overflow = 'hidden';
+      officialDetail.style.width = '100%';
+      officialDetail.style.maxWidth = 'none';
+
+      const updateHeight = () => {
+        iframe.style.height = `${Math.ceil(officialDetail.getBoundingClientRect().height) + 4}px`;
       };
-    });
-    
-  let html = '<div class="thc-history-wrapper">';
-  
-  sortedYears.forEach(yearObj => {
-    html += `
-      <div class="thc-history-year-group">
-        <div class="thc-history-year-title">${yearObj.year}</div>
-        <div class="thc-history-months-list">
-    `;
-    
-    yearObj.months.forEach(monthObj => {
-      html += `
-        <div class="thc-history-month-row">
-          <span class="thc-history-month-name">${monthObj.month}</span>
-          <span class="thc-history-days-list">
-      `;
-      
-      monthObj.days.forEach(dayObj => {
-        const isActive = parseInt(dayObj.id) === parseInt(targetId);
-        const activeClass = isActive ? 'active' : '';
-        html += `<a href="javascript:void(0)" class="thc-history-day-link ${activeClass}" data-row-id="${rowId}" data-target-id="${dayObj.id}">${dayObj.day}</a>`;
-      });
-      
-      html += `
-          </span>
-        </div>
-      `;
-    });
-    
-    html += `
-        </div>
-      </div>
-    `;
-  });
-  
-  html += '</div>';
-  container.innerHTML = html;
+      updateHeight();
+      const FrameResizeObserver = iframe.contentWindow.ResizeObserver;
+      if (FrameResizeObserver) new FrameResizeObserver(updateHeight).observe(officialDetail);
+      host.querySelector('.thc-leaderboard-loading')?.remove();
+      panel.classList.add('thc-official-detail-loaded');
+    } catch (error) {
+      clearInterval(waitForDetail);
+      host.removeAttribute('data-competition-id');
+      host.innerHTML = '<div class="thc-official-detail-error">No se pudo cargar el detalle oficial.</div>';
+      parkOfficialDetailFrame();
+      console.error('[THC Addon] No se pudo cargar el detalle oficial:', error);
+    }
+  }, 50);
 }
-
-// Renderizar la tabla de la clasificación en el DOM
-function renderLeaderboardHtml(container, data, id) {
-  const entrants = data.entrants || [];
-  const entrantsTotal = data.entrants_total || 0;
-  
-  if (entrants.length === 0) {
-    container.innerHTML = `<div style="color: #a0aec0; font-size: 13px; padding: 10px 0;">No hay participantes registrados con resultados aún.</div>`;
-    return;
-  }
-  
-  let html = `
-    <table class="thc-leaderboard-table" style="width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px;">
-      <thead>
-        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; color: #718096;">
-          <th style="padding: 6px 0;">Posición</th>
-          <th style="padding: 6px 0;">Jugador</th>
-          <th style="padding: 6px 0; text-align: right;">Resultado</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-  
-  html += entrants.map(entry => {
-    const username = entry.user ? entry.user.handle : 'Desconocido';
-    const profileUrl = `https://www.thehunter.com/#profile/${username}`;
-    
-    return `
-      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-        <td style="padding: 8px 0; font-weight: 600; color: #a0aec0;">${entry.position}</td>
-        <td style="padding: 8px 0;">
-          <a href="${profileUrl}" target="_blank" style="color: #f9370d; text-decoration: none; font-weight: 500;">${username}</a>
-        </td>
-        <td style="padding: 8px 0; text-align: right; color: #ffffff; font-variant-numeric: tabular-nums;">${entry.points}</td>
-      </tr>
-    `;
-  }).join('');
-  
-  html += `
-      </tbody>
-    </table>
-    <div style="font-size: 11px; color: #718096; margin-top: 8px; text-align: right;">
-      Total: ${entrantsTotal} participantes
-    </div>
-  `;
-  
-  container.innerHTML = html;
-}
-
-// Resumen rápido de premios para la tarjeta
-function renderPrizesSummary(prizes) {
-  if (!prizes || prizes.length === 0) return '';
-  // Coger recompensas del 1er puesto
-  const firstRank = prizes[0];
-  if (!firstRank || !firstRank.rewards) return '';
-  
-  const goldReward = firstRank.rewards.find(r => r.type === 'GOLD');
-  if (goldReward) {
-    return `<span class="thc-reward-gold">🪙 ${goldReward.amount}</span>`;
-  }
-  return '';
-}
-
-// Listado de premios completo para el panel
-function renderPrizesFull(prizes) {
-  if (!prizes || prizes.length === 0) return '<div style="color: #718096; font-size: 13px;">Sin información de premios.</div>';
-  
-  return prizes.map((prize, index) => {
-    const rewards = prize.rewards.map(r => {
-      if (r.type === 'GOLD') {
-        return `<span class="thc-reward-gold">🪙 ${r.amount} gm</span>`;
-      }
-      if (r.type === 'TROPHY') {
-        // Formatear el identificador del trofeo de forma más legible (ej. ROE_DEER_01_GOLD -> Roe Deer Gold)
-        const friendlyTrophy = r.define
-          .toLowerCase()
-          .replace(/_01|_02/g, '')
-          .replace(/_/g, ' ');
-        return `<span class="thc-reward-trophy">🏆 ${friendlyTrophy}</span>`;
-      }
-      return `<span>${r.type} (${r.define || r.amount})</span>`;
-    }).join(' ');
-    
-    return `
-      <div class="thc-prize-item">
-        <span class="thc-prize-rank">${index + 1}º Puesto</span>
-        <div class="thc-prize-rewards">${rewards}</div>
-      </div>
-    `;
-  }).join('');
-}
-
 // Bucle para actualizar todas las cuentas atrás del renderizado
 function updateTimers() {
   const now = Date.now() / 1000;
@@ -1328,21 +844,12 @@ function syncDesignState() {
 
 // --- RENDERIZADO CLÁSICO ---
 
-function compactRulesHtml(rulesHtml) {
-  return String(rulesHtml || '')
-    .replace(/(?:<br\s*\/?\s*>\s*){2,}/gi, '<br>')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/>\s+</g, '><')
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
-}
-
 function renderClassicCompetitions(competitions, container) {
   const now = Date.now() / 1000;
   const sortedCompetitions = sortClassicCompetitions(competitions, now);
   const groups = [
     { id: 'available', title: 'Competiciones disponibles', items: sortedCompetitions },
-    { id: 'joined', title: 'Competiciones inscritas', items: sortedCompetitions.filter(comp => userCompetitionStates[comp.id] === 2) },
+    { id: 'joined', title: 'Competiciones inscritas', items: sortedCompetitions.filter(comp => Number(userCompetitionStates[comp.id]) === 2) },
     { id: 'active', title: 'Competiciones activas', items: sortedCompetitions.filter(comp => now >= comp.start && now <= comp.end) }
   ];
 
@@ -1438,21 +945,7 @@ function renderClassicCompetition(comp, groupId, now) {
       <td><span class="thc-timer-value" data-end="${comp.end}" data-start="${comp.start}" data-id="${comp.id}">${formatTimeRemaining(timeLeft)}</span></td>
     </tr>
     <tr class="thc-classic-details-row" id="details-${instanceId}"><td colspan="6">
-      <div class="thc-classic-details">
-        <div class="thc-classic-detail-actions" id="join-btn-container-${instanceId}">${renderJoinButton(comp, true)}</div>
-        <div class="thc-rules-content" id="rules-content-${instanceId}">${compactRulesHtml(comp.rulesHtml)}</div>
-        <div class="thc-classic-columns">
-          <section class="thc-details-prizes"><h3>Recompensas</h3><div class="thc-prize-list" id="prizes-list-${instanceId}">${renderPrizesFull(comp.prizes, true)}</div></section>
-          <section class="thc-classic-collapsible">
-            <button type="button" class="thc-classic-detail-toggle"><span>Clasificación</span><span class="thc-classic-detail-arrow">▶</span></button>
-            <div class="thc-classic-collapsible-content thc-leaderboard-container" id="leaderboard-${instanceId}" style="display:none"></div>
-          </section>
-          <section class="thc-classic-collapsible">
-            <button type="button" class="thc-classic-detail-toggle"><span>Historial</span><span class="thc-classic-detail-arrow">▶</span></button>
-            <div class="thc-classic-collapsible-content thc-history-container" id="history-${instanceId}" style="display:none"></div>
-          </section>
-        </div>
-      </div>
+      <div class="thc-official-detail-host"></div>
     </td></tr>`;
 }
 
@@ -1496,7 +989,7 @@ function toggleClassicDetails(instanceId, competitionId) {
     panel.classList.add('active');
     row.classList.add('expanded');
     row.querySelector('.thc-classic-row-toggle').textContent = '▼';
-    loadDetailsForId(instanceId, competitionId);
+    loadOfficialCompetitionDetails(panel, competitionId);
   }
 }
 
@@ -1540,22 +1033,28 @@ function renderQuickFilters() {
       if (isAlreadyActive) {
         activeFilters.especie = '';
       } else {
-        const selectEspecie = document.getElementById('thc-filter-especie');
-        let matchedValue = speciesKey;
-        if (selectEspecie) {
+        activeFilters.especie = speciesKey;
+      }
+
+      activeFilters.mapa = '';
+      const selectMapa = document.getElementById('thc-filter-mapa');
+      if (selectMapa) selectMapa.value = '';
+
+      // Sincronizar select tradicional
+      const selectEspecie = document.getElementById('thc-filter-especie');
+      if (selectEspecie) {
+        if (activeFilters.especie === '') {
+          selectEspecie.value = '';
+        } else {
+          let matchedOptionValue = '';
           for (const option of selectEspecie.options) {
             if (option.value && normalizeIconName(option.value).includes(speciesKey)) {
-              matchedValue = option.value;
+              matchedOptionValue = option.value;
               break;
             }
           }
+          selectEspecie.value = matchedOptionValue;
         }
-        activeFilters.especie = matchedValue;
-      }
-
-      const selectEspecie = document.getElementById('thc-filter-especie');
-      if (selectEspecie) {
-        selectEspecie.value = activeFilters.especie;
       }
 
       applyFilters();
@@ -1571,22 +1070,28 @@ function renderQuickFilters() {
       if (isAlreadyActive) {
         activeFilters.mapa = '';
       } else {
-        const selectMapa = document.getElementById('thc-filter-mapa');
-        let matchedValue = reserveKey;
-        if (selectMapa) {
+        activeFilters.mapa = reserveKey;
+      }
+
+      activeFilters.especie = '';
+      const selectEspecie = document.getElementById('thc-filter-especie');
+      if (selectEspecie) selectEspecie.value = '';
+
+      // Sincronizar select tradicional
+      const selectMapa = document.getElementById('thc-filter-mapa');
+      if (selectMapa) {
+        if (activeFilters.mapa === '') {
+          selectMapa.value = '';
+        } else {
+          let matchedOptionValue = '';
           for (const option of selectMapa.options) {
             if (option.value && normalizeIconName(option.value).includes(reserveKey)) {
-              matchedValue = option.value;
+              matchedOptionValue = option.value;
               break;
             }
           }
+          selectMapa.value = matchedOptionValue;
         }
-        activeFilters.mapa = matchedValue;
-      }
-
-      const selectMapa = document.getElementById('thc-filter-mapa');
-      if (selectMapa) {
-        selectMapa.value = activeFilters.mapa;
       }
 
       applyFilters();
@@ -1602,7 +1107,7 @@ function syncQuickFiltersUI() {
     const currentSpeciesNorm = normalizeIconName(activeFilters.especie);
     speciesContainer.querySelectorAll('.thc-quick-filter-icon').forEach(icon => {
       const key = icon.dataset.species;
-      if (currentSpeciesNorm && currentSpeciesNorm.includes(key)) {
+      if (currentSpeciesNorm && (currentSpeciesNorm === key || (currentSpeciesNorm.length > key.length && currentSpeciesNorm.includes(key)))) {
         icon.classList.add('active');
       } else {
         icon.classList.remove('active');
@@ -1614,7 +1119,7 @@ function syncQuickFiltersUI() {
     const currentReserveNorm = normalizeIconName(activeFilters.mapa);
     reservesContainer.querySelectorAll('.thc-quick-filter-icon').forEach(icon => {
       const key = icon.dataset.reserve;
-      if (currentReserveNorm && currentReserveNorm.includes(key)) {
+      if (currentReserveNorm && (currentReserveNorm === key || (currentReserveNorm.length > key.length && currentReserveNorm.includes(key)))) {
         icon.classList.add('active');
       } else {
         icon.classList.remove('active');
