@@ -27,6 +27,17 @@
         "styles.css"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "*://*.thehunter.com/*",
+        "*://thehunter.com/*"
+      ],
+      "js": [
+        "inject.js"
+      ],
+      "run_at": "document_idle",
+      "world": "MAIN"
     }
   ],
   "web_accessible_resources": [

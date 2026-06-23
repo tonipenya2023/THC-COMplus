@@ -528,3 +528,208 @@ body.thc-overlay-active {
 #thc-optimizer-overlay .thc-content-area::-webkit-scrollbar-thumb:hover {
   background: rgba(249, 55, 13, 0.3);
 }
+
+/* Estilos para el Leaderboard (Clasificación) y Botones de Unirse */
+.thc-details-header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(249, 55, 13, 0.2);
+  padding-bottom: 8px;
+}
+
+.thc-details-header-actions h3 {
+  margin: 0 !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+.thc-leaderboard-section {
+  margin-top: 40px !important;
+}
+
+.thc-leaderboard-table th {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.thc-leaderboard-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.thc-leaderboard-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #a0aec0;
+  padding: 12px 0;
+}
+
+.thc-loading-spinner-small {
+  width: 16px !important;
+  height: 16px !important;
+  border-width: 2px !important;
+  margin: 0 !important;
+}
+
+#thc-optimizer-overlay .thc-btn-join {
+  background: linear-gradient(135deg, #f9370d, #b82200) !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 6px 16px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  border-radius: 8px !important;
+}
+
+#thc-optimizer-overlay .thc-btn-join:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 55, 13, 0.3);
+}
+
+#thc-optimizer-overlay .thc-btn-join:active {
+  transform: translateY(0);
+}
+
+#thc-optimizer-overlay .thc-btn-leave {
+  background: rgba(79, 209, 197, 0.1) !important;
+  border: 1px solid rgba(79, 209, 197, 0.3) !important;
+  color: #4fd1c5 !important;
+  padding: 6px 16px !important;
+  border-radius: 8px !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-block !important;
+}
+
+#thc-optimizer-overlay .thc-btn-leave:hover {
+  background: rgba(252, 129, 129, 0.1) !important;
+  border-color: rgba(252, 129, 129, 0.4) !important;
+  color: #fc8181 !important;
+  box-shadow: 0 4px 12px rgba(252, 129, 129, 0.2) !important;
+}
+
+#thc-optimizer-overlay .thc-btn-leave:hover span {
+  display: none !important;
+}
+
+#thc-optimizer-overlay .thc-btn-leave:hover::after {
+  content: "Salir" !important;
+}
+
+/* Estilos para el Historial de Competiciones */
+.thc-history-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f9370d;
+  margin-top: 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(249, 55, 13, 0.2);
+  padding-bottom: 8px;
+}
+
+.thc-history-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px 20px;
+  max-width: 280px;
+}
+
+.thc-history-year-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.thc-history-year-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  border-left: 2px solid #f9370d;
+  padding-left: 8px;
+  margin-bottom: 4px;
+}
+
+.thc-history-months-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 10px;
+}
+
+.thc-history-month-row {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.thc-history-month-name {
+  color: #a0aec0;
+  font-weight: 500;
+  min-width: 90px;
+  display: inline-block;
+}
+
+.thc-history-days-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.thc-history-day-link {
+  color: #f9370d;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.thc-history-day-link:hover {
+  color: #ff6b4a;
+  background: rgba(249, 55, 13, 0.05);
+  border-color: rgba(249, 55, 13, 0.2);
+}
+
+.thc-history-day-link.active {
+  color: #ffffff !important;
+  background: rgba(249, 55, 13, 0.2) !important;
+  border-color: rgba(249, 55, 13, 0.4) !important;
+  font-weight: 700 !important;
+}
+
+/* Estilos para el toggle colapsable del Historial */
+.thc-history-toggle {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  transition: color 0.2s ease;
+  max-width: 280px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.thc-history-toggle:hover {
+  color: #ff6b4a !important;
+}
+
+.thc-history-arrow {
+  font-size: 12px;
+  color: #718096;
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
