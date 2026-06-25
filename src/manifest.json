@@ -12,7 +12,9 @@
   "permissions": [],
   "host_permissions": [
     "*://*.thehunter.com/*",
-    "*://thehunter.com/*"
+    "*://thehunter.com/*",
+    "http://127.0.0.1:8080/*",
+    "http://localhost:8080/*"
   ],
   "content_scripts": [
     {

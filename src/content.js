@@ -19,9 +19,15 @@ let joinedCompetitionMetrics = {};
 let openClassicGroupId = null;
 let officialDetailFrame = null;
 let officialDetailLoadToken = 0;
+let profileDashboardUsername = null;
+let profileDashboardMountTimer = null;
 
 let activeDesign = localStorage.getItem('thc-competition-design') || 'modern';
 let classicSort = { key: 'name', direction: 'asc' };
+
+const PROFILE_HASH_PATTERN = /^#profile\/([^/]+)\/?$/;
+const GRAFANA_PROFILE_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/cb2e199e2d374da2a4bb2d20b4e01025';
+const PROFILE_VISION_API_URL = 'http://127.0.0.1:8080/api/profile-vision-gral';
 
 const ANIMAL_ICON_FILES = {
   'alce': 'moose-male-common.png', 'banteng': 'banteng-male-common.png', 'bisonte': 'bisonte.png',
@@ -196,16 +202,20 @@ function handleUrlChange() {
   }
   
   lastHash = currentHash;
+  const profileMatch = currentHash.match(PROFILE_HASH_PATTERN);
   const isCompetitionsPage = currentHash === '#competitions';
+  const profileUsername = profileMatch ? decodeURIComponent(profileMatch[1]) : '';
   console.log("[THC Addon] Cambio de URL procesado. Nuevo hash:", currentHash, "| ¿Es competiciones?:", isCompetitionsPage);
   
   // Gestionar visibilidad del botón flotante
   let toggleBtn = document.getElementById('thc-toggle-view-btn');
   if (isCompetitionsPage) {
+    closeProfileDashboard();
     if (!toggleBtn) {
       createToggleBtn();
     } else {
       toggleBtn.style.display = 'flex';
+      configureCompetitionToggleButton(toggleBtn);
     }
     
     // Si no se ha inyectado el overlay, inyectarlo
@@ -219,11 +229,18 @@ function handleUrlChange() {
         openOverlay();
       }
     }
+  } else if (profileUsername) {
+    closeOverlay();
+    if (toggleBtn) {
+      toggleBtn.style.display = 'none';
+    }
+    mountProfileDashboard(profileUsername);
   } else {
     if (toggleBtn) {
       toggleBtn.style.display = 'none';
     }
     closeOverlay();
+    closeProfileDashboard();
   }
 }
 
@@ -232,7 +249,7 @@ function createToggleBtn() {
   const btn = document.createElement('button');
   btn.id = 'thc-toggle-view-btn';
   btn.className = 'thc-toggle-btn';
-  btn.innerHTML = '🏆 Vista Optimizada';
+  btn.textContent = 'Vista Optimizada';
   btn.addEventListener('click', () => {
     const overlay = document.getElementById('thc-optimizer-overlay');
     if (overlay) {
@@ -249,13 +266,236 @@ function createToggleBtn() {
   document.body.appendChild(btn);
 }
 
+function configureCompetitionToggleButton(btn) {
+  btn.textContent = 'Vista Optimizada';
+  btn.onclick = () => {
+    const overlay = document.getElementById('thc-optimizer-overlay');
+    if (overlay) {
+      if (overlay.classList.contains('active')) {
+        closeOverlay();
+      } else {
+        openOverlay();
+      }
+    } else {
+      createOverlay();
+      loadCompetitions();
+    }
+  };
+}
+
+function mountProfileDashboard(username) {
+  profileDashboardUsername = username;
+  closeProfileDashboard();
+  let attempts = 0;
+  profileDashboardMountTimer = setInterval(() => {
+    attempts++;
+    const target = findProfileVisionGeneralContainer();
+    if (!target) {
+      if (attempts >= 80) clearProfileDashboardMountTimer();
+      return;
+    }
+
+    clearProfileDashboardMountTimer();
+    saveProfileVisionGeneral(username, target).finally(() => {
+      target.setAttribute('data-thc-profile-vision-original', target.innerHTML);
+      target.classList.add('thc-profile-dashboard-inline');
+      target.innerHTML = renderProfileDashboardFrame(username);
+    });
+  }, 100);
+}
+
+async function saveProfileVisionGeneral(username, target) {
+  const payload = buildProfileVisionPayload(username, target);
+  if (!payload) return;
+  const response = await fetch(PROFILE_VISION_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`profile vision save failed: ${response.status}`);
+  }
+}
+
+function buildProfileVisionPayload(username, target) {
+  const userId = currentUserId || readProfileUserId();
+  if (!userId) return null;
+  const categories = readProfileVisionCategories(target);
+  if (!categories.length) return null;
+  return {
+    user_id: userId,
+    profile_username: username,
+    oauth_access_token: userAccessToken,
+    rank_image_url: readProfileRankImageUrl(target),
+    categories
+  };
+}
+
+function readProfileUserId() {
+  const match = document.documentElement.innerHTML.match(/"id"\s*:\s*(\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
+function readProfileVisionCategories(target) {
+  const result = [];
+  const hunterScoreSource = target.querySelector('.hunterscore-bar');
+  const hunterScore = readHunterScoreCategory(target, hunterScoreSource);
+  if (hunterScore) result.push(hunterScore);
+  const categoryNames = {
+    animals: 'Animales',
+    weapons: 'Armas',
+    collectables: 'Coleccionables'
+  };
+  target.querySelectorAll('.rank-holder .rank-container').forEach(source => {
+    const progressText = collectElementOwnDataText(source) || source.textContent || '';
+    const title = progressText.match(/^\s*(Animals|Weapons|Collectables)\b/i);
+    if (!title) return;
+    const categoria = categoryNames[title[1].toLowerCase()];
+    result.push(readProgressCategory(categoria, source, source.previousElementSibling));
+  });
+  return result.filter(Boolean);
+}
+
+function findProgressDataElements(target) {
+  const seen = new Set();
+  const candidates = Array.from(target.querySelectorAll('div, span, a, li'))
+    .map(element => {
+      const rect = element.getBoundingClientRect();
+      const text = collectElementOwnDataText(element);
+      return { element, rect, text };
+    })
+    .filter(item => /desbloqueado|unlocked|\d+\s*\/\s*\d+/i.test(item.text))
+    .filter(item => item.rect.width >= 20 && item.rect.height >= 8)
+    .filter(item => {
+      const key = item.text.replace(/\s+/g, ' ').trim();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((left, right) => left.rect.top - right.rect.top);
+  return candidates.map(item => item.element);
+}
+
+function readHunterScoreCategory(target, source) {
+  const parsed = source ? parseProgressText(collectElementOwnDataText(source) || source.textContent) : null;
+  const current = parsed ? parsed.current : null;
+  const total = parsed && parsed.total ? parsed.total : 115000;
+  if (!current) return null;
+  return {
+    categoria: 'Puntuación del cazador',
+    valor_actual: current,
+    valor_total: total,
+    porcentaje_actual: parsed && parsed.percent != null ? parsed.percent : Number(((current / total) * 100).toFixed(3)),
+    icon_url: readCategoryIconUrl(source || target)
+  };
+}
+
+function readProgressCategory(categoria, source, iconElement) {
+  const text = source ? (collectElementOwnDataText(source) || source.textContent) : '';
+  const parsed = parseProgressText(text);
+  return {
+    categoria,
+    valor_actual: parsed ? parsed.current : null,
+    valor_total: parsed ? parsed.total : null,
+    porcentaje_actual: parsed ? parsed.percent : null,
+    icon_url: readCategoryIconUrl(iconElement || source || document)
+  };
+}
+
+function collectElementOwnDataText(element) {
+  if (!element) return '';
+  const values = [
+    element.getAttribute('title'),
+    element.getAttribute('aria-label'),
+    element.getAttribute('data-original-title'),
+    element.getAttribute('data-tooltip'),
+    element.getAttribute('data-content'),
+    element.getAttribute('rel')
+  ];
+  Array.from(element.attributes || []).forEach(attribute => {
+    if (/tooltip|title|progress|percent|unlocked|desbloqueado/i.test(attribute.name + attribute.value)) {
+      values.push(attribute.value);
+    }
+  });
+  return values.filter(Boolean).join(' ');
+}
+
+function parseProgressText(text) {
+  const valueText = String(text || '');
+  const unlocked = valueText.match(/(?:desbloqueado|unlocked)[^\d]*(\d+)\s*\/\s*(\d+)(?:[^\d]+(\d+(?:[.,]\d+)?)\s*%)?/i);
+  if (unlocked) {
+    const current = Number(unlocked[1]);
+    const total = Number(unlocked[2]);
+    return {
+      current,
+      total,
+      percent: unlocked[3] ? Number(unlocked[3].replace(',', '.')) : Number(((current / total) * 100).toFixed(3))
+    };
+  }
+  const ratio = valueText.match(/(\d+)\s*\/\s*(\d+)/);
+  if (ratio) {
+    const current = Number(ratio[1]);
+    const total = Number(ratio[2]);
+    return { current, total, percent: Number(((current / total) * 100).toFixed(3)) };
+  }
+  return null;
+}
+
+function readCategoryIconUrl(root) {
+  const image = root && root.matches && root.matches('img.rank-progress-icon')
+    ? root
+    : root && root.querySelector ? root.querySelector('img.rank-progress-icon') : null;
+  return image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null;
+}
+
+function normalizeTheHunterAssetUrl(value) {
+  const url = String(value || '').trim();
+  if (!url) return null;
+  if (url.startsWith('////')) return `https://${url.slice(4)}`;
+  if (url.startsWith('//')) return `https:${url}`;
+  return url;
+}
+
+function readProfileRankImageUrl(target) {
+  const images = Array.from(target.querySelectorAll('img'));
+  const ranked = images
+    .map(img => ({ img, rect: img.getBoundingClientRect() }))
+    .filter(item => item.rect.height > item.rect.width && item.rect.height > 120)
+    .sort((left, right) => right.rect.height - left.rect.height);
+  return ranked[0] ? (ranked[0].img.currentSrc || ranked[0].img.src) : null;
+}
+
+function findProfileVisionGeneralContainer() {
+  const candidates = Array.from(document.querySelectorAll('div, section, article'))
+    .filter(element => !element.closest('#thc-optimizer-overlay'))
+    .filter(element => !element.closest('.thc-profile-dashboard-inline'))
+    .filter(element => {
+      const text = element.textContent || '';
+      return text.includes('Progreso')
+        && text.includes('Puntuación del Cazador')
+        && text.includes('Categorías');
+    })
+    .map(element => ({ element, rect: element.getBoundingClientRect() }))
+    .filter(item => item.rect.width >= 500 && item.rect.height >= 250)
+    .sort((left, right) => (left.rect.width * left.rect.height) - (right.rect.width * right.rect.height));
+
+  return candidates.length ? candidates[0].element : null;
+}
+
+function clearProfileDashboardMountTimer() {
+  if (profileDashboardMountTimer) {
+    clearInterval(profileDashboardMountTimer);
+    profileDashboardMountTimer = null;
+  }
+}
+
 // Crear el overlay HTML principal
 function createOverlay() {
   const overlay = document.createElement('div');
   overlay.id = 'thc-optimizer-overlay';
   
   const logoUrl = (typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.getURL === 'function')
-    ? chrome.runtime.getURL('thc_comp_logo.png')
+    ? chrome.runtime.getURL('thc-uicom+.png')
     : '';
   
   overlay.innerHTML = `
@@ -395,6 +635,41 @@ function closeOverlay() {
       timerInterval = null;
     }
   }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function closeProfileDashboard() {
+  clearProfileDashboardMountTimer();
+  document.querySelectorAll('.thc-profile-dashboard-inline').forEach(element => {
+    const original = element.getAttribute('data-thc-profile-vision-original');
+    if (original != null) element.innerHTML = original;
+    element.classList.remove('thc-profile-dashboard-inline');
+    element.removeAttribute('data-thc-profile-vision-original');
+  });
+}
+
+function renderProfileDashboardFrame(username) {
+  const dashboardUrl = buildProfileDashboardUrl(username);
+  if (!dashboardUrl) {
+    return '<div class="thc-profile-dashboard-empty">Dashboard pendiente de configurar.</div>';
+  }
+  return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana" src="${dashboardUrl}"></iframe>`;
+}
+
+function buildProfileDashboardUrl(username) {
+  if (!GRAFANA_PROFILE_DASHBOARD_URL) return '';
+  const url = new URL(GRAFANA_PROFILE_DASHBOARD_URL);
+  url.searchParams.set('var-profile_username', username);
+  if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
+  return url.toString();
 }
 
 // Cargar las competiciones desde la API nativa

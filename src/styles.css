@@ -33,6 +33,27 @@
   transform: translateY(-1px) scale(0.98);
 }
 
+.thc-profile-dashboard-inline {
+  width: 100% !important;
+  min-height: max(900px, calc(100vh - 80px)) !important;
+}
+
+.thc-profile-dashboard-frame {
+  width: 100%;
+  height: max(900px, calc(100vh - 80px));
+  border: 0;
+  background: #111;
+  display: block;
+}
+
+.thc-profile-dashboard-empty {
+  min-height: max(900px, calc(100vh - 80px));
+  display: grid;
+  place-items: center;
+  color: #a0aec0;
+  font-size: 14px;
+}
+
 /* Contenedor Overlay Principal */
 #thc-optimizer-overlay {
   position: fixed;
