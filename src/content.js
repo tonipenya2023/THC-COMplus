@@ -13,6 +13,10 @@ let lastHash = null; // Evitar llamadas duplicadas
 
 let userAccessToken = '';
 let userCompetitionStates = {}; // key: id, value: state (0=not joinable, 1=joinable, 2=joined)
+let currentUserId = null;
+let favoriteCompetitionIds = new Set();
+let joinedCompetitionMetrics = {};
+let openClassicGroupId = null;
 let officialDetailFrame = null;
 let officialDetailLoadToken = 0;
 
@@ -59,6 +63,7 @@ async function init() {
   console.log("[THC Addon] Token de acceso obtenido:", userAccessToken ? "SÍ" : "NO");
   
   if (userAccessToken) {
+    await loadCurrentUser();
     await loadUserCompetitionStates();
   }
   
@@ -117,6 +122,42 @@ function renderMatchingIcons(value, catalog, folder, className) {
     .join('');
 }
 
+async function loadCurrentUser() {
+  if (!userAccessToken) return;
+  try {
+    const response = await fetch('https://api.thehunter.com/v1/Me/me', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `oauth_access_token=${encodeURIComponent(userAccessToken)}`
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const user = await response.json();
+    currentUserId = Number(user.id) || null;
+    const stored = JSON.parse(localStorage.getItem(favoritesStorageKey()) || '[]');
+    favoriteCompetitionIds = new Set(Array.isArray(stored) ? stored.map(String) : []);
+  } catch (error) {
+    console.error('[THC Addon] Error al cargar el usuario:', error);
+  }
+}
+
+function favoritesStorageKey() {
+  return currentUserId ? `thc-competition-favorites:${currentUserId}` : '';
+}
+
+function toggleFavoriteCompetition(competitionId) {
+  const key = favoritesStorageKey();
+  if (!key) return;
+  const id = String(competitionId);
+  favoriteCompetitionIds.has(id) ? favoriteCompetitionIds.delete(id) : favoriteCompetitionIds.add(id);
+  localStorage.setItem(key, JSON.stringify([...favoriteCompetitionIds]));
+  applyFilters();
+}
+
+function renderFavoriteButton(comp) {
+  const active = favoriteCompetitionIds.has(String(comp.id));
+  const label = active ? 'Quitar de favoritas' : 'Marcar como favorita';
+  return `<button type="button" class="thc-favorite-btn${active ? ' active' : ''}" data-favorite-id="${comp.id}" aria-pressed="${active}" aria-label="${label}" title="${label}">★</button>`;
+}
+
 // Obtener los estados de inscripción del usuario
 async function loadUserCompetitionStates() {
   if (!userAccessToken) return;
@@ -131,8 +172,13 @@ async function loadUserCompetitionStates() {
     if (response.ok) {
       const states = await response.json();
       userCompetitionStates = {};
+      joinedCompetitionMetrics = {};
       states.forEach(s => {
         userCompetitionStates[s.id] = Number(s.state);
+        joinedCompetitionMetrics[s.id] = {
+          attempts: Number(s.attempts) || 0,
+          position: s.position == null ? null : Number(s.position)
+        };
       });
       console.log("[THC Addon] Estados de competición cargados:", Object.keys(userCompetitionStates).length);
     }
@@ -237,7 +283,11 @@ function createOverlay() {
           </div>
           <div class="thc-stats-badge" id="thc-stats">0 competiciones</div>
         </div>
-        <div class="thc-quick-filters-container">
+        <section class="thc-quick-filters-section" id="thc-quick-filters-section">
+          <button type="button" class="thc-quick-filters-toggle" id="thc-quick-filters-toggle" aria-expanded="true" aria-controls="thc-quick-filters-content">
+            <span>Filtros por especies y reservas</span><span class="thc-quick-filters-arrow">▼</span>
+          </button>
+          <div class="thc-quick-filters-container" id="thc-quick-filters-content">
           <div class="thc-quick-filter-row">
             <span class="thc-quick-filter-label">Especies:</span>
             <div class="thc-quick-filter-icons" id="thc-quick-species-container"></div>
@@ -246,7 +296,8 @@ function createOverlay() {
             <span class="thc-quick-filter-label">Reservas:</span>
             <div class="thc-quick-filter-icons" id="thc-quick-reserves-container"></div>
           </div>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
     <div class="thc-content-area">
@@ -271,6 +322,7 @@ function createOverlay() {
   
   // Agregar eventos a los elementos del DOM creados
   document.getElementById('thc-close-btn').addEventListener('click', closeOverlay);
+  document.getElementById('thc-quick-filters-toggle').addEventListener('click', toggleQuickFilters);
 
   overlay.querySelectorAll('.thc-design-switch button').forEach(button => {
     button.addEventListener('click', () => setActiveDesign(button.dataset.design));
@@ -283,6 +335,24 @@ function createOverlay() {
   });
   
 
+}
+
+function toggleQuickFilters() {
+  const section = document.getElementById('thc-quick-filters-section');
+  const button = document.getElementById('thc-quick-filters-toggle');
+  if (!section || !button) return;
+  const collapsed = section.classList.toggle('collapsed');
+  button.setAttribute('aria-expanded', String(!collapsed));
+  button.querySelector('.thc-quick-filters-arrow').textContent = collapsed ? '▶' : '▼';
+}
+
+function closeQuickFilters() {
+  const section = document.getElementById('thc-quick-filters-section');
+  const button = document.getElementById('thc-quick-filters-toggle');
+  if (!section || !button) return;
+  section.classList.add('collapsed');
+  button.setAttribute('aria-expanded', 'false');
+  button.querySelector('.thc-quick-filters-arrow').textContent = '▶';
 }
 
 function openOverlay() {
@@ -357,6 +427,7 @@ async function loadCompetitions() {
         start: comp.start,
         end: comp.end,
         entrants: comp.entrants,
+        attempts: comp.type.attempts,
         finished: comp.finished,
         prizes: comp.type.prizes || [],
         parsedRules: parsedRules
@@ -541,6 +612,7 @@ function renderCompetitions(competitions) {
   const now = Date.now() / 1000;
   
   let tableHtml = `
+    ${renderModernFavoritesGroup(competitions, now)}
     <table class="thc-table">
       <thead>
         <tr>
@@ -570,7 +642,7 @@ function renderCompetitions(competitions) {
           <div class="thc-table-comp-info">
             <img src="${comp.image}" alt="${comp.name}" class="thc-table-img" onerror="this.src='https://static.thehunter.com/static/img/competitions/compimages/comp_weight.png'">
             <div>
-              <div class="thc-table-comp-name">${comp.name}</div>
+              <div class="thc-table-comp-title">${renderFavoriteButton(comp)}<div class="thc-table-comp-name">${comp.name}</div></div>
               <div class="thc-table-comp-desc">${comp.descShort}</div>
             </div>
           </div>
@@ -605,6 +677,10 @@ function renderCompetitions(competitions) {
   `;
   
   container.innerHTML = tableHtml;
+
+  container.querySelectorAll('.thc-favorite-btn').forEach(button => {
+    button.addEventListener('click', () => toggleFavoriteCompetition(button.dataset.favoriteId));
+  });
   
   // Agregar eventos para desplegar reglas
   const detailButtons = container.querySelectorAll('.thc-btn-details');
@@ -615,6 +691,22 @@ function renderCompetitions(competitions) {
       toggleDetailsPanel(id, competitionId);
     });
   });
+}
+
+function renderModernFavoritesGroup(competitions, now) {
+  const favorites = competitions.filter(comp => favoriteCompetitionIds.has(String(comp.id)));
+  return `
+    <section class="thc-modern-favorites-group">
+      <div class="thc-modern-favorites-title"><span>★ Competiciones favoritas (${favorites.length})</span></div>
+      ${favorites.length ? `<div class="thc-modern-favorites-list">${favorites.map(comp => `
+        <div class="thc-modern-favorite-item">
+          ${renderFavoriteButton(comp)}
+          <img src="${comp.image}" alt="" class="thc-modern-favorite-img">
+          <span class="thc-modern-favorite-name">${comp.name}</span>
+          <span class="thc-modern-favorite-reserve">${comp.parsedRules.reserva}</span>
+          <span class="thc-timer-value" data-end="${comp.end}" data-start="${comp.start}" data-id="${comp.id}">${formatTimeRemaining((now < comp.start ? comp.start : comp.end) - now)}</span>
+        </div>`).join('')}</div>` : '<div class="thc-modern-favorites-empty">No hay competiciones favoritas.</div>'}
+    </section>`;
 }
 
 // Alternar panel de detalles (Fila de tabla expandida)
@@ -847,9 +939,20 @@ function syncDesignState() {
 function renderClassicCompetitions(competitions, container) {
   const now = Date.now() / 1000;
   const sortedCompetitions = sortClassicCompetitions(competitions, now);
+  const joinedCompetitions = sortedCompetitions
+    .filter(comp => Number(userCompetitionStates[comp.id]) === 2)
+    .sort((left, right) => {
+      const leftPosition = joinedCompetitionMetrics[left.id] && joinedCompetitionMetrics[left.id].position;
+      const rightPosition = joinedCompetitionMetrics[right.id] && joinedCompetitionMetrics[right.id].position;
+      if (leftPosition == null && rightPosition == null) return 0;
+      if (leftPosition == null) return 1;
+      if (rightPosition == null) return -1;
+      return leftPosition - rightPosition;
+    });
   const groups = [
+    { id: 'favorites', title: 'Competiciones favoritas', items: sortedCompetitions.filter(comp => favoriteCompetitionIds.has(String(comp.id))) },
     { id: 'available', title: 'Competiciones disponibles', items: sortedCompetitions },
-    { id: 'joined', title: 'Competiciones inscritas', items: sortedCompetitions.filter(comp => Number(userCompetitionStates[comp.id]) === 2) },
+    { id: 'joined', title: 'Competiciones inscritas', items: joinedCompetitions },
     { id: 'active', title: 'Competiciones activas', items: sortedCompetitions.filter(comp => now >= comp.start && now <= comp.end) }
   ];
 
@@ -879,6 +982,9 @@ function renderClassicCompetitions(competitions, container) {
   });
   container.querySelectorAll('.thc-classic-row-toggle').forEach(button => {
     button.addEventListener('click', () => toggleClassicDetails(button.dataset.instance, button.dataset.competition));
+  });
+  container.querySelectorAll('.thc-favorite-btn').forEach(button => {
+    button.addEventListener('click', () => toggleFavoriteCompetition(button.dataset.favoriteId));
   });
 }
 
@@ -917,11 +1023,12 @@ function updateClassicSortIndicators(container) {
 }
 
 function renderClassicGroup(group, now) {
+  const isOpen = group.id === openClassicGroupId;
   return `
-    <tbody class="thc-classic-group collapsed" id="classic-group-${group.id}">
+    <tbody class="thc-classic-group${isOpen ? '' : ' collapsed'}" id="classic-group-${group.id}">
       <tr class="thc-classic-group-heading"><th colspan="6">
-        <button type="button" class="thc-classic-section-title" data-group="${group.id}" aria-expanded="false">
-          <span>${group.title} (${group.items.length})</span><span class="thc-classic-section-arrow">▶</span>
+        <button type="button" class="thc-classic-section-title" data-group="${group.id}" aria-expanded="${isOpen}">
+          <span>${group.title} (${group.items.length})</span><span class="thc-classic-section-arrow">${isOpen ? '▼' : '▶'}</span>
         </button>
       </th></tr>
       ${group.items.length ? group.items.map(comp => renderClassicCompetition(comp, group.id, now)).join('') : '<tr class="thc-classic-empty-row"><td colspan="6">Sin competiciones</td></tr>'}
@@ -934,19 +1041,38 @@ function renderClassicCompetition(comp, groupId, now) {
   const timeLeft = isUpcoming ? comp.start - now : comp.end - now;
   const reserveIcons = renderMatchingIcons(comp.parsedRules.reserva, RESERVE_ICON_FILES, 'reserves', 'thc-classic-reserve-icon');
   const animalIcons = renderMatchingIcons(comp.parsedRules.especie, ANIMAL_ICON_FILES, 'animals', 'thc-classic-animal-icon');
+  const metrics = joinedCompetitionMetrics[comp.id] || {};
+  const attemptsTotal = Number(comp.attempts) || 0;
+  const attemptsRemaining = Math.max(0, attemptsTotal - (Number(metrics.attempts) || 0));
+  const positionHtml = metrics.position == null
+    ? '<span><b>Posición</b> Sin resultado</span>'
+    : `<span><b>Posición</b> <strong class="thc-joined-position">${metrics.position}</strong></span>`;
+  const joinedMeta = groupId === 'joined' ? `
+    <div class="thc-joined-meta">
+      <span><b>Intentos</b> ${attemptsRemaining}/${attemptsTotal}</span>
+      ${positionHtml}
+      <span><b>Inicio</b> ${formatCompetitionDate(comp.start)}</span>
+      <span><b>Fin</b> ${formatCompetitionDate(comp.end)}</span>
+    </div>` : '';
 
   return `
     <tr class="thc-classic-item" id="row-${instanceId}" data-comp-id="${comp.id}">
       <td><span class="thc-classic-count">${comp.entrants}</span></td>
       <td><button type="button" class="thc-classic-row-toggle" data-instance="${instanceId}" data-competition="${comp.id}" aria-label="Desplegar ${comp.name}">▶</button></td>
       <td><span class="thc-classic-icons">${animalIcons || `<img src="${comp.image}" alt="" class="thc-classic-animal-icon">`}</span></td>
-      <td class="thc-classic-name">${comp.name}</td>
+      <td class="thc-classic-name"><div class="thc-classic-title">${renderFavoriteButton(comp)}<span>${comp.name}</span></div>${joinedMeta}</td>
       <td><span class="thc-classic-reserve">${reserveIcons}<span>${comp.parsedRules.reserva}</span></span></td>
       <td><span class="thc-timer-value" data-end="${comp.end}" data-start="${comp.start}" data-id="${comp.id}">${formatTimeRemaining(timeLeft)}</span></td>
     </tr>
     <tr class="thc-classic-details-row" id="details-${instanceId}"><td colspan="6">
       <div class="thc-official-detail-host"></div>
     </td></tr>`;
+}
+
+function formatCompetitionDate(timestamp) {
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+  }).format(new Date(Number(timestamp) * 1000));
 }
 
 function toggleClassicGroup(groupId) {
@@ -956,6 +1082,7 @@ function toggleClassicGroup(groupId) {
 
   const isOpening = group.classList.contains('collapsed');
   if (isOpening) {
+    closeQuickFilters();
     document.querySelectorAll('.thc-classic-group').forEach(otherGroup => {
       if (otherGroup !== group) {
         otherGroup.classList.add('collapsed');
@@ -970,6 +1097,7 @@ function toggleClassicGroup(groupId) {
   }
 
   const collapsed = group.classList.toggle('collapsed');
+  openClassicGroupId = collapsed ? null : groupId;
   button.setAttribute('aria-expanded', String(!collapsed));
   button.querySelector('.thc-classic-section-arrow').textContent = collapsed ? '▶' : '▼';
 }

@@ -491,14 +491,14 @@ body.thc-classic-design-active .thc-toggle-btn { border-radius:2px; background:#
 .thc-classic-table .thc-col-count { width:74px; }
 .thc-classic-table .thc-col-toggle { width:26px; }
 .thc-classic-table .thc-col-species { width:16%; }
-.thc-classic-table .thc-col-competition { width:25%; }
-.thc-classic-table .thc-col-reserves { width:40%; }
+.thc-classic-table .thc-col-competition { width:30%; }
+.thc-classic-table .thc-col-reserves { width:35%; }
 .thc-classic-table .thc-col-time { width:90px; }
 .thc-classic-table thead th { padding:6px 10px; border-bottom:1px solid #3b3b3b; background:#181818; color:#888; font-size:10px; font-weight:600; text-align:left; text-transform:uppercase; letter-spacing:.35px; }
 .thc-classic-table thead th:last-child { text-align:right; }
-.thc-classic-sort { width:100%; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:0; border:0; background:transparent; color:inherit; font:inherit; text-align:left; text-transform:inherit; letter-spacing:inherit; cursor:pointer; }
-.thc-classic-sort span { min-width:10px; color:#aaa; font-size:9px; }
-.thc-classic-table thead th:last-child .thc-classic-sort { text-align:right; }
+.thc-classic-sort { width:100%; display:flex; align-items:center; justify-content:flex-start; gap:6px; padding:0; border:0; background:transparent; color:inherit; font:inherit; text-align:left; text-transform:inherit; letter-spacing:inherit; cursor:pointer; }
+.thc-classic-sort span { color:#aaa; font-size:9px; }
+.thc-classic-table thead th:last-child .thc-classic-sort { justify-content:flex-end; text-align:right; }
 
 
 .thc-classic-group-heading th { padding:8px 0 3px; }
@@ -628,3 +628,28 @@ body.thc-classic-design-active .thc-toggle-btn { border-radius:2px; background:#
 .thc-official-detail-frame { display:block; visibility:hidden; width:100%; height:0; min-height:0; border:0; background:#111; }
 .thc-official-detail-loaded .thc-official-detail-frame { visibility:visible; min-height:420px; }
 .thc-official-detail-error { padding:24px; color:#fc8181; text-align:center; }
+
+/* Filtros plegables, favoritas y datos de competiciones inscritas */
+.thc-quick-filters-section { margin-top:10px; border:1px solid #2f2f2f; background:#141414; }
+.thc-quick-filters-toggle { width:100%; display:flex; align-items:center; justify-content:space-between; padding:9px 14px; border:0; border-left:4px solid #b64b28; background:#232323; color:#ddd; font:600 12px 'Outfit','Inter',sans-serif; text-align:left; text-transform:uppercase; letter-spacing:.45px; cursor:pointer; }
+.thc-quick-filters-toggle:hover { background:#292929; }
+.thc-quick-filters-arrow { color:#aaa; font-size:11px; }
+.thc-quick-filters-section.collapsed .thc-quick-filters-container { display:none; }
+.thc-favorite-btn { flex:0 0 auto; width:25px; height:25px; padding:0; border:0; background:transparent; color:#666; font-size:20px; line-height:1; cursor:pointer; transition:color .15s ease,transform .15s ease; }
+.thc-favorite-btn:hover { color:#e0b83f; transform:scale(1.12); }
+.thc-favorite-btn.active { color:#f2c94c; text-shadow:0 0 7px rgba(242,201,76,.35); }
+.thc-table-comp-title,.thc-classic-title { display:flex; align-items:center; gap:7px; min-width:0; }
+.thc-joined-meta { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2px 10px; margin-top:5px; color:#aaa; font-size:10px; font-weight:400; line-height:1.35; }
+.thc-joined-meta span { white-space:nowrap; }
+.thc-joined-meta b { margin-right:3px; color:#ddd; font-weight:600; }
+.thc-joined-position { color:#69c56c; font-size:12px; font-weight:700; }
+.thc-modern-favorites-group { max-width:1200px; margin:8px auto 4px; border:1px solid rgba(242,201,76,.2); border-radius:10px; overflow:hidden; background:rgba(20,20,20,.55); }
+.thc-modern-favorites-title { padding:10px 14px; border-left:4px solid #d4a72c; background:rgba(242,201,76,.08); color:#f2d675; font-size:14px; font-weight:600; }
+.thc-modern-favorites-list { display:flex; flex-direction:column; }
+.thc-modern-favorite-item { display:grid; grid-template-columns:25px 34px minmax(180px,1fr) minmax(160px,1fr) auto; gap:10px; align-items:center; padding:8px 14px; border-top:1px solid rgba(255,255,255,.05); color:#a0aec0; font-size:12px; }
+.thc-modern-favorite-img { width:32px; height:32px; border-radius:5px; object-fit:cover; }
+.thc-modern-favorite-name { color:#fff; font-weight:600; }
+.thc-modern-favorite-item .thc-timer-value { color:#f2d675; font-size:12px; }
+.thc-modern-favorites-empty { padding:12px 14px; color:#718096; font-size:12px; }
+#thc-optimizer-overlay[data-design="classic"] .thc-quick-filters-section { border-radius:0; }
+#thc-optimizer-overlay[data-design="classic"] .thc-modern-favorites-group { display:none; }
