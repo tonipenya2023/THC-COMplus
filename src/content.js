@@ -25,9 +25,13 @@ let profileDashboardMountTimer = null;
 let activeDesign = localStorage.getItem('thc-competition-design') || 'modern';
 let classicSort = { key: 'name', direction: 'asc' };
 
-const PROFILE_HASH_PATTERN = /^#profile\/([^/]+)\/?$/;
+const PROFILE_HASH_PATTERN = /^#profile\/([^/]+)(?:\/ranks(?:\/([^/]+))?)?\/?$/;
 const GRAFANA_PROFILE_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/cb2e199e2d374da2a4bb2d20b4e01025';
+const GRAFANA_PROFILE_ANIMALS_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/fff95e6762304a2399395d7337a2c526';
+const GRAFANA_PROFILE_WEAPONS_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/a073af32d3ea42fd9e42d8190c489310';
+const GRAFANA_PROFILE_COLLECTABLES_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/60fa840e5d9245d2aeb26ab587918b68';
 const PROFILE_VISION_API_URL = 'http://127.0.0.1:8080/api/profile-vision-gral';
+const PROFILE_ANIMALS_API_URL = PROFILE_VISION_API_URL;
 
 const ANIMAL_ICON_FILES = {
   'alce': 'moose-male-common.png', 'banteng': 'banteng-male-common.png', 'bisonte': 'bisonte.png',
@@ -205,10 +209,12 @@ function handleUrlChange() {
   const profileMatch = currentHash.match(PROFILE_HASH_PATTERN);
   const isCompetitionsPage = currentHash === '#competitions';
   const profileUsername = profileMatch ? decodeURIComponent(profileMatch[1]) : '';
+  const profileRanksSection = profileMatch ? String(profileMatch[2] || '') : '';
   console.log("[THC Addon] Cambio de URL procesado. Nuevo hash:", currentHash, "| ¿Es competiciones?:", isCompetitionsPage);
   
   // Gestionar visibilidad del botón flotante
   let toggleBtn = document.getElementById('thc-toggle-view-btn');
+  const profileDashboardLoader = profileUsername ? renderProfileDashboardLoading() : '';
   if (isCompetitionsPage) {
     closeProfileDashboard();
     if (!toggleBtn) {
@@ -229,12 +235,33 @@ function handleUrlChange() {
         openOverlay();
       }
     }
-  } else if (profileUsername) {
+  } else if (profileUsername && profileRanksSection === 'animals') {
+    closeOverlay();
+    closeProfileDashboard();
+    if (toggleBtn) {
+      toggleBtn.style.display = 'none';
+    }
+    mountProfileAnimals(profileUsername, profileDashboardLoader);
+  } else if (profileUsername && profileRanksSection === 'weapons') {
+    closeOverlay();
+    closeProfileDashboard();
+    if (toggleBtn) {
+      toggleBtn.style.display = 'none';
+    }
+    mountProfileWeapons(profileUsername, profileDashboardLoader);
+  } else if (profileUsername && profileRanksSection === 'collectables') {
+    closeOverlay();
+    closeProfileDashboard();
+    if (toggleBtn) {
+      toggleBtn.style.display = 'none';
+    }
+    mountProfileCollectables(profileUsername, profileDashboardLoader);
+  } else if (profileUsername && !profileRanksSection) {
     closeOverlay();
     if (toggleBtn) {
       toggleBtn.style.display = 'none';
     }
-    mountProfileDashboard(profileUsername);
+    mountProfileDashboard(profileUsername, profileDashboardLoader);
   } else {
     if (toggleBtn) {
       toggleBtn.style.display = 'none';
@@ -283,7 +310,7 @@ function configureCompetitionToggleButton(btn) {
   };
 }
 
-function mountProfileDashboard(username) {
+function mountProfileDashboard(username, loaderHtml) {
   profileDashboardUsername = username;
   closeProfileDashboard();
   let attempts = 0;
@@ -296,10 +323,69 @@ function mountProfileDashboard(username) {
     }
 
     clearProfileDashboardMountTimer();
+    showProfileDashboardLoading(target, loaderHtml);
     saveProfileVisionGeneral(username, target).finally(() => {
-      target.setAttribute('data-thc-profile-vision-original', target.innerHTML);
-      target.classList.add('thc-profile-dashboard-inline');
       target.innerHTML = renderProfileDashboardFrame(username);
+    });
+  }, 100);
+}
+
+function mountProfileAnimals(username, loaderHtml) {
+  let attempts = 0;
+  profileDashboardMountTimer = setInterval(() => {
+    attempts++;
+    const target = findProfileAnimalsContainer();
+    if (!target) {
+      if (attempts >= 80) clearProfileDashboardMountTimer();
+      return;
+    }
+
+    clearProfileDashboardMountTimer();
+    showProfileDashboardLoading(target, loaderHtml);
+    saveProfileAnimals(username, target).catch(error => {
+      console.error('[THC Addon] Error al guardar especies del perfil:', error);
+    }).finally(() => {
+      target.innerHTML = renderProfileAnimalsDashboardFrame(username);
+    });
+  }, 100);
+}
+
+function mountProfileWeapons(username, loaderHtml) {
+  let attempts = 0;
+  profileDashboardMountTimer = setInterval(() => {
+    attempts++;
+    const target = findProfileRanksContainer();
+    if (!target) {
+      if (attempts >= 80) clearProfileDashboardMountTimer();
+      return;
+    }
+
+    clearProfileDashboardMountTimer();
+    showProfileDashboardLoading(target, loaderHtml);
+    saveProfileWeapons(username, target).catch(error => {
+      console.error('[THC Addon] Error al guardar armas del perfil:', error);
+    }).finally(() => {
+      target.innerHTML = renderProfileWeaponsDashboardFrame(username);
+    });
+  }, 100);
+}
+
+function mountProfileCollectables(username, loaderHtml) {
+  let attempts = 0;
+  profileDashboardMountTimer = setInterval(() => {
+    attempts++;
+    const target = findProfileRanksContainer();
+    if (!target) {
+      if (attempts >= 80) clearProfileDashboardMountTimer();
+      return;
+    }
+
+    clearProfileDashboardMountTimer();
+    showProfileDashboardLoading(target, loaderHtml);
+    saveProfileCollectables(username, target).catch(error => {
+      console.error('[THC Addon] Error al guardar coleccionables del perfil:', error);
+    }).finally(() => {
+      target.innerHTML = renderProfileCollectablesDashboardFrame(username);
     });
   }, 100);
 }
@@ -317,6 +403,45 @@ async function saveProfileVisionGeneral(username, target) {
   }
 }
 
+async function saveProfileAnimals(username, target) {
+  const payload = buildProfileAnimalsPayload(username, target);
+  if (!payload) return;
+  const response = await fetch(PROFILE_ANIMALS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`profile animals save failed: ${response.status}`);
+  }
+}
+
+async function saveProfileWeapons(username, target) {
+  const payload = buildProfileWeaponsPayload(username, target);
+  if (!payload) return;
+  const response = await fetch(PROFILE_VISION_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`profile weapons save failed: ${response.status}`);
+  }
+}
+
+async function saveProfileCollectables(username, target) {
+  const payload = buildProfileCollectablesPayload(username, target);
+  if (!payload) return;
+  const response = await fetch(PROFILE_VISION_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`profile collectables save failed: ${response.status}`);
+  }
+}
+
 function buildProfileVisionPayload(username, target) {
   const userId = currentUserId || readProfileUserId();
   if (!userId) return null;
@@ -328,6 +453,48 @@ function buildProfileVisionPayload(username, target) {
     oauth_access_token: userAccessToken,
     rank_image_url: readProfileRankImageUrl(target),
     categories
+  };
+}
+
+function buildProfileAnimalsPayload(username, target) {
+  const userId = currentUserId || readProfileUserId();
+  if (!userId) return null;
+  const species = readProfileAnimalRanks(target);
+  if (!species.length) return null;
+  return {
+    user_id: userId,
+    profile_username: username,
+    oauth_access_token: userAccessToken,
+    page_url: window.location.href,
+    species
+  };
+}
+
+function buildProfileWeaponsPayload(username, target) {
+  const userId = currentUserId || readProfileUserId();
+  if (!userId) return null;
+  const weapons = readProfileWeaponRanks(target);
+  if (!weapons.length) return null;
+  return {
+    user_id: userId,
+    profile_username: username,
+    oauth_access_token: userAccessToken,
+    page_url: window.location.href,
+    weapons
+  };
+}
+
+function buildProfileCollectablesPayload(username, target) {
+  const userId = currentUserId || readProfileUserId();
+  if (!userId) return null;
+  const collectables = readProfileCollectableRanks(target);
+  if (!collectables.length) return null;
+  return {
+    user_id: userId,
+    profile_username: username,
+    oauth_access_token: userAccessToken,
+    page_url: window.location.href,
+    collectables
   };
 }
 
@@ -354,6 +521,72 @@ function readProfileVisionCategories(target) {
     result.push(readProgressCategory(categoria, source, source.previousElementSibling));
   });
   return result.filter(Boolean);
+}
+
+function readProfileAnimalRanks(target) {
+  return Array.from(target.querySelectorAll('.rank-container'))
+    .map((container, index) => readProfileAnimalRank(container, index + 1))
+    .filter(Boolean);
+}
+
+function readProfileAnimalRank(container, rankOrder) {
+  const title = container.querySelector('h4');
+  const especie = title ? title.textContent.trim() : '';
+  if (!especie) return null;
+  const row = container.closest('tr') || container.parentElement || container;
+  const progress = container.querySelector('.rank-progress');
+  const rawPercentage = progress ? progress.getAttribute('data-percentage') : '';
+  const valueElement = Array.from(container.querySelectorAll('.rank-bar-holder div'))
+    .map(element => element.textContent.trim())
+    .filter(Boolean)
+    .find(text => /^\d+$/.test(text));
+  const image = row.querySelector('img');
+  return {
+    orden: rankOrder,
+    especie,
+    valor_actual: valueElement ? Number(valueElement) : null,
+    porcentaje_actual: rawPercentage ? Number(rawPercentage.replace('%', '').replace(',', '.')) : null,
+    icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+    texto: row.textContent.replace(/\s+/g, ' ').trim()
+  };
+}
+
+function readProfileWeaponRanks(target) {
+  return Array.from(target.querySelectorAll('.rank-container'))
+    .map((container, index) => readProfileWeaponRank(container, index + 1))
+    .filter(Boolean);
+}
+
+function readProfileWeaponRank(container, rankOrder) {
+  const item = readProfileAnimalRank(container, rankOrder);
+  if (!item) return null;
+  return {
+    orden: item.orden,
+    arma: item.especie,
+    valor_actual: item.valor_actual,
+    porcentaje_actual: item.porcentaje_actual,
+    icon_url: item.icon_url,
+    texto: item.texto
+  };
+}
+
+function readProfileCollectableRanks(target) {
+  return Array.from(target.querySelectorAll('.rank-container'))
+    .map((container, index) => readProfileCollectableRank(container, index + 1))
+    .filter(Boolean);
+}
+
+function readProfileCollectableRank(container, rankOrder) {
+  const item = readProfileAnimalRank(container, rankOrder);
+  if (!item) return null;
+  return {
+    orden: item.orden,
+    coleccionable: item.especie,
+    valor_actual: item.valor_actual,
+    porcentaje_actual: item.porcentaje_actual,
+    icon_url: item.icon_url,
+    texto: item.texto
+  };
 }
 
 function findProgressDataElements(target) {
@@ -477,6 +710,25 @@ function findProfileVisionGeneralContainer() {
     })
     .map(element => ({ element, rect: element.getBoundingClientRect() }))
     .filter(item => item.rect.width >= 500 && item.rect.height >= 250)
+    .sort((left, right) => (left.rect.width * left.rect.height) - (right.rect.width * right.rect.height));
+
+  return candidates.length ? candidates[0].element : null;
+}
+
+function findProfileAnimalsContainer() {
+  return findProfileRanksContainer();
+}
+
+function findProfileRanksContainer() {
+  const candidates = Array.from(document.querySelectorAll('div, section, article, table, tbody'))
+    .filter(element => !element.closest('#thc-optimizer-overlay'))
+    .filter(element => {
+      const ranks = element.querySelectorAll('.rank-container h4');
+      const icons = element.querySelectorAll('img[src*="/static/img/ranks/"]');
+      return ranks.length >= 3 && icons.length >= 3;
+    })
+    .map(element => ({ element, rect: element.getBoundingClientRect() }))
+    .filter(item => item.rect.width >= 300 && item.rect.height >= 150)
     .sort((left, right) => (left.rect.width * left.rect.height) - (right.rect.width * right.rect.height));
 
   return candidates.length ? candidates[0].element : null;
@@ -656,6 +908,17 @@ function closeProfileDashboard() {
   });
 }
 
+function showProfileDashboardLoading(target, loaderHtml) {
+  if (!target) return;
+  target.setAttribute('data-thc-profile-vision-original', target.innerHTML);
+  target.classList.add('thc-profile-dashboard-inline');
+  target.innerHTML = loaderHtml;
+}
+
+function renderProfileDashboardLoading() {
+  return '<div class="thc-profile-dashboard-loading"><div class="thc-profile-dashboard-loading-box"><div class="thc-profile-dashboard-loading-spinner"></div><div>Cargando panel...</div></div></div>';
+}
+
 function renderProfileDashboardFrame(username) {
   const dashboardUrl = buildProfileDashboardUrl(username);
   if (!dashboardUrl) {
@@ -664,9 +927,57 @@ function renderProfileDashboardFrame(username) {
   return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana" src="${dashboardUrl}"></iframe>`;
 }
 
+function renderProfileAnimalsDashboardFrame(username) {
+  const dashboardUrl = buildProfileAnimalsDashboardUrl(username);
+  if (!dashboardUrl) {
+    return '<div class="thc-profile-dashboard-empty">Dashboard pendiente de configurar.</div>';
+  }
+  return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana especies" src="${dashboardUrl}"></iframe>`;
+}
+
+function renderProfileWeaponsDashboardFrame(username) {
+  const dashboardUrl = buildProfileWeaponsDashboardUrl(username);
+  if (!dashboardUrl) {
+    return '<div class="thc-profile-dashboard-empty">Dashboard pendiente de configurar.</div>';
+  }
+  return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana armas" src="${dashboardUrl}"></iframe>`;
+}
+
+function renderProfileCollectablesDashboardFrame(username) {
+  const dashboardUrl = buildProfileCollectablesDashboardUrl(username);
+  if (!dashboardUrl) {
+    return '<div class="thc-profile-dashboard-empty">Dashboard pendiente de configurar.</div>';
+  }
+  return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana coleccionables" src="${dashboardUrl}"></iframe>`;
+}
+
 function buildProfileDashboardUrl(username) {
   if (!GRAFANA_PROFILE_DASHBOARD_URL) return '';
   const url = new URL(GRAFANA_PROFILE_DASHBOARD_URL);
+  url.searchParams.set('var-profile_username', username);
+  if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
+  return url.toString();
+}
+
+function buildProfileAnimalsDashboardUrl(username) {
+  if (!GRAFANA_PROFILE_ANIMALS_DASHBOARD_URL) return '';
+  const url = new URL(GRAFANA_PROFILE_ANIMALS_DASHBOARD_URL);
+  url.searchParams.set('var-profile_username', username);
+  if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
+  return url.toString();
+}
+
+function buildProfileWeaponsDashboardUrl(username) {
+  if (!GRAFANA_PROFILE_WEAPONS_DASHBOARD_URL) return '';
+  const url = new URL(GRAFANA_PROFILE_WEAPONS_DASHBOARD_URL);
+  url.searchParams.set('var-profile_username', username);
+  if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
+  return url.toString();
+}
+
+function buildProfileCollectablesDashboardUrl(username) {
+  if (!GRAFANA_PROFILE_COLLECTABLES_DASHBOARD_URL) return '';
+  const url = new URL(GRAFANA_PROFILE_COLLECTABLES_DASHBOARD_URL);
   url.searchParams.set('var-profile_username', username);
   if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
   return url.toString();
