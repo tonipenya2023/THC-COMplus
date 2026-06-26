@@ -80,6 +80,13 @@
   animation: thc-profile-dashboard-spin 0.8s linear infinite;
 }
 
+body.thc-profile-achievements-official-hidden .achievements-content:not(.thc-profile-dashboard-inline),
+body.thc-profile-achievements-official-hidden .achievement-holder:not(.thc-profile-dashboard-inline),
+body.thc-profile-achievements-official-hidden table.achievement-latest:not(.thc-profile-dashboard-inline),
+body.thc-profile-achievements-official-hidden table.challenges:not(.thc-profile-dashboard-inline) {
+  visibility: hidden !important;
+}
+
 @keyframes thc-profile-dashboard-spin {
   to { transform: rotate(360deg); }
 }

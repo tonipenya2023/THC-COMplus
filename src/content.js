@@ -26,12 +26,14 @@ let activeDesign = localStorage.getItem('thc-competition-design') || 'modern';
 let classicSort = { key: 'name', direction: 'asc' };
 
 const PROFILE_HASH_PATTERN = /^#profile\/([^/]+)(?:\/ranks(?:\/([^/]+))?)?\/?$/;
+const PROFILE_ACHIEVEMENTS_HASH_PATTERN = /^#profile\/([^/]+)\/achievements\/([^/]+)\/?$/;
 const GRAFANA_PROFILE_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/cb2e199e2d374da2a4bb2d20b4e01025';
 const GRAFANA_PROFILE_ANIMALS_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/fff95e6762304a2399395d7337a2c526';
 const GRAFANA_PROFILE_WEAPONS_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/a073af32d3ea42fd9e42d8190c489310';
 const GRAFANA_PROFILE_COLLECTABLES_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/60fa840e5d9245d2aeb26ab587918b68';
 const PROFILE_VISION_API_URL = 'http://127.0.0.1:8080/api/profile-vision-gral';
 const PROFILE_ANIMALS_API_URL = PROFILE_VISION_API_URL;
+const PROFILE_ACHIEVEMENT_SECTIONS = new Set(['animals', 'weapons', 'exploration', 'day_mission', 'challenges', 'summary']);
 
 const ANIMAL_ICON_FILES = {
   'alce': 'moose-male-common.png', 'banteng': 'banteng-male-common.png', 'bisonte': 'bisonte.png',
@@ -207,9 +209,11 @@ function handleUrlChange() {
   
   lastHash = currentHash;
   const profileMatch = currentHash.match(PROFILE_HASH_PATTERN);
+  const profileAchievementsMatch = currentHash.match(PROFILE_ACHIEVEMENTS_HASH_PATTERN);
   const isCompetitionsPage = currentHash === '#competitions';
-  const profileUsername = profileMatch ? decodeURIComponent(profileMatch[1]) : '';
+  const profileUsername = profileMatch ? decodeURIComponent(profileMatch[1]) : (profileAchievementsMatch ? decodeURIComponent(profileAchievementsMatch[1]) : '');
   const profileRanksSection = profileMatch ? String(profileMatch[2] || '') : '';
+  const profileAchievementsSection = profileAchievementsMatch ? String(profileAchievementsMatch[2] || '') : '';
   console.log("[THC Addon] Cambio de URL procesado. Nuevo hash:", currentHash, "| ¿Es competiciones?:", isCompetitionsPage);
   
   // Gestionar visibilidad del botón flotante
@@ -256,7 +260,15 @@ function handleUrlChange() {
       toggleBtn.style.display = 'none';
     }
     mountProfileCollectables(profileUsername, profileDashboardLoader);
-  } else if (profileUsername && !profileRanksSection) {
+  } else if (profileUsername && PROFILE_ACHIEVEMENT_SECTIONS.has(profileAchievementsSection)) {
+    closeOverlay();
+    closeProfileDashboard();
+    hideProfileAchievementsOfficialData();
+    if (toggleBtn) {
+      toggleBtn.style.display = 'none';
+    }
+    mountProfileAchievements(profileUsername, profileAchievementsSection, profileDashboardLoader);
+  } else if (profileMatch && profileUsername && !profileRanksSection) {
     closeOverlay();
     if (toggleBtn) {
       toggleBtn.style.display = 'none';
@@ -390,6 +402,26 @@ function mountProfileCollectables(username, loaderHtml) {
   }, 100);
 }
 
+function mountProfileAchievements(username, section, loaderHtml) {
+  let attempts = 0;
+  profileDashboardMountTimer = setInterval(() => {
+    attempts++;
+    const target = findProfileAchievementsContainer(section);
+    if (!target) {
+      if (attempts >= 80) clearProfileDashboardMountTimer();
+      return;
+    }
+
+    clearProfileDashboardMountTimer();
+    showProfileDashboardLoading(target, loaderHtml);
+    saveProfileAchievements(username, section, target).catch(error => {
+      console.error('[THC Addon] Error al guardar logros del perfil:', error);
+    }).finally(() => {
+      target.innerHTML = renderProfileAchievementsDashboardFrame(username, section);
+    });
+  }, 100);
+}
+
 async function saveProfileVisionGeneral(username, target) {
   const payload = buildProfileVisionPayload(username, target);
   if (!payload) return;
@@ -439,6 +471,19 @@ async function saveProfileCollectables(username, target) {
   });
   if (!response.ok) {
     throw new Error(`profile collectables save failed: ${response.status}`);
+  }
+}
+
+async function saveProfileAchievements(username, section, target) {
+  const payload = buildProfileAchievementsPayload(username, section, target);
+  if (!payload) return;
+  const response = await fetch(PROFILE_VISION_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`profile achievements save failed: ${response.status}`);
   }
 }
 
@@ -498,9 +543,188 @@ function buildProfileCollectablesPayload(username, target) {
   };
 }
 
+function buildProfileAchievementsPayload(username, section, target) {
+  const userId = currentUserId || readProfileUserId();
+  if (!userId || !PROFILE_ACHIEVEMENT_SECTIONS.has(section)) return null;
+  const rows = section === 'summary'
+    ? readProfileAchievementsSummary(target)
+    : (section === 'challenges' ? readProfileChallenges(target) : readProfileAchievementRows(target));
+  if (!rows.length) return null;
+  return {
+    user_id: userId,
+    profile_username: username,
+    oauth_access_token: userAccessToken,
+    page_url: window.location.href,
+    section,
+    rows
+  };
+}
+
 function readProfileUserId() {
   const match = document.documentElement.innerHTML.match(/"id"\s*:\s*(\d+)/);
   return match ? Number(match[1]) : null;
+}
+
+function readProfileAchievementRows(target) {
+  const rows = [];
+  target.querySelectorAll('.achievement-info').forEach((container, index) => {
+    const titleText = (container.querySelector('.title')?.textContent || '').replace(/\s+/g, ' ').trim();
+    const groupMatch = titleText.match(/^(.*?)\s*\((\d+)\s*\/\s*(\d+)\)/);
+    const image = container.closest('tr')?.querySelector('img[src*="/static/img/achievements/"]');
+    const levelCells = container.querySelectorAll('.achievement-info-holder td');
+    if (!levelCells.length && titleText) {
+      rows.push({
+        orden: index + 1,
+        row_type: 'achievement',
+        group_title: groupMatch ? groupMatch[1].trim() : titleText,
+        completed_count: groupMatch ? Number(groupMatch[2]) : null,
+        total_count: groupMatch ? Number(groupMatch[3]) : null,
+        achievement_icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+        texto: container.textContent.replace(/\s+/g, ' ').trim()
+      });
+      return;
+    }
+    levelCells.forEach((cell, levelIndex) => {
+      const progress = parseAchievementLevelProgress(cell);
+      rows.push({
+        orden: index + 1,
+        level_order: levelIndex + 1,
+        row_type: 'achievement_level',
+        group_title: groupMatch ? groupMatch[1].trim() : titleText,
+        completed_count: groupMatch ? Number(groupMatch[2]) : null,
+        total_count: groupMatch ? Number(groupMatch[3]) : null,
+        achievement_icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+        level_value: readOwnText(cell.querySelector('.inner-content > .progress-text')) || null,
+        level_title: cell.querySelector('.achievement-tooltip .title')?.textContent.replace(/\s+/g, ' ').trim() || null,
+        level_description: readAchievementTooltipDescription(cell),
+        completed: cell.classList.contains('completed'),
+        in_progress: cell.classList.contains('in-progress'),
+        progress_value: progress.current,
+        progress_target: progress.total,
+        progress_pct: progress.percent,
+        unlock_date: readAchievementUnlockDate(cell),
+        texto: cell.textContent.replace(/\s+/g, ' ').trim()
+      });
+    });
+  });
+  return rows;
+}
+
+function readProfileChallenges(target) {
+  return Array.from(target.querySelectorAll('table.challenges tbody tr'))
+    .map((row, index) => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length < 4) return null;
+      const image = cells[0].querySelector('img');
+      const textCell = cells[1];
+      return {
+        orden: index + 1,
+        row_type: 'challenge',
+        achievement_title: textCell.querySelector('b')?.textContent.replace(/\s+/g, ' ').trim() || null,
+        achievement_description: Array.from(textCell.childNodes)
+          .map(node => node.nodeType === Node.TEXT_NODE ? node.textContent : '')
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim() || null,
+        achievement_icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+        completed: image ? !image.classList.contains('grayscale-image') : null,
+        achievement_date: cells[2].textContent.replace(/\s+/g, ' ').trim() || null,
+        value: cells[3].textContent.replace(/\s+/g, ' ').trim() || null,
+        texto: row.textContent.replace(/\s+/g, ' ').trim()
+      };
+    })
+    .filter(Boolean);
+}
+
+function readProfileAchievementsSummary(target) {
+  const rows = [];
+  target.querySelectorAll('.achievement-holder .achievement-container').forEach((container, index) => {
+    const indicator = container.querySelector('.achievement-progress-indicator');
+    const indicatorText = indicator ? indicator.textContent.replace(/\s+/g, ' ').trim() : '';
+    const match = indicatorText.match(/^(.+?)\s+[^:]+:\s*(\d+)\s*\/\s*(\d+)\s*\(?\s*(\d+(?:[.,]\d+)?)\s*%?\)?/);
+    const progress = container.querySelector('.achievement-progress');
+    rows.push({
+      orden: index + 1,
+      row_type: 'category_progress',
+      category_title: match ? match[1].trim() : indicatorText,
+      completed_count: match ? Number(match[2]) : null,
+      total_count: match ? Number(match[3]) : null,
+      progress_pct: match ? Number(match[4].replace(',', '.')) : readPercentageAttribute(progress),
+      texto: container.textContent.replace(/\s+/g, ' ').trim()
+    });
+  });
+  target.querySelectorAll('table.achievement-latest tbody tr').forEach((row, index) => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 4) return;
+    const image = cells[0].querySelector('img');
+    rows.push({
+      orden: index + 1,
+      row_type: 'latest',
+      achievement_title: cells[1].querySelector('b')?.textContent.replace(/\s+/g, ' ').trim() || null,
+      achievement_description: Array.from(cells[1].childNodes)
+        .map(node => node.nodeType === Node.TEXT_NODE ? node.textContent : '')
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim() || null,
+      achievement_icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+      achievement_date: cells[2].textContent.replace(/\s+/g, ' ').trim() || null,
+      value: cells[3].textContent.replace(/\s+/g, ' ').trim() || null,
+      texto: row.textContent.replace(/\s+/g, ' ').trim()
+    });
+  });
+  const foundMatch = target.textContent.match(/(?:Achievements found|Logros encontrados)[^\d]*(\d+)/i);
+  if (foundMatch) {
+    rows.push({
+      orden: rows.length + 1,
+      row_type: 'statistic',
+      metric_name: 'achievements_found',
+      value: foundMatch[1]
+    });
+  }
+  return rows;
+}
+
+function parseAchievementLevelProgress(cell) {
+  const text = cell.textContent.replace(/\s+/g, ' ');
+  const match = text.match(/(?:Progress|Progreso):\s*(\d+)\s*\/\s*(\d+)(?:\s*\((\d+(?:[.,]\d+)?)%\))?/i);
+  if (!match) return { current: null, total: null, percent: null };
+  return {
+    current: Number(match[1]),
+    total: Number(match[2]),
+    percent: match[3] ? Number(match[3].replace(',', '.')) : Number(((Number(match[1]) / Number(match[2])) * 100).toFixed(3))
+  };
+}
+
+function readAchievementTooltipDescription(cell) {
+  const tooltip = cell.querySelector('.achievement-tooltip');
+  if (!tooltip) return null;
+  const title = tooltip.querySelector('.title');
+  const descriptions = Array.from(tooltip.querySelectorAll('.odd span'))
+    .map(element => element.textContent.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .filter(text => !title || text !== title.textContent.replace(/\s+/g, ' ').trim());
+  return descriptions[0] || null;
+}
+
+function readAchievementUnlockDate(cell) {
+  const match = cell.textContent.match(/(?:Unlock date|Fecha de desbloqueo):\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/i);
+  return match ? match[1] : null;
+}
+
+function readOwnText(element) {
+  if (!element) return '';
+  return Array.from(element.childNodes)
+    .filter(node => node.nodeType === Node.TEXT_NODE)
+    .map(node => node.textContent)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function readPercentageAttribute(element) {
+  if (!element) return null;
+  const value = element.getAttribute('data-percentage') || '';
+  return value ? Number(value.replace('%', '').replace(',', '.')) : null;
 }
 
 function readProfileVisionCategories(target) {
@@ -734,6 +958,29 @@ function findProfileRanksContainer() {
   return candidates.length ? candidates[0].element : null;
 }
 
+function findProfileAchievementsContainer(section) {
+  const selectors = section === 'summary'
+    ? ['.achievements-content', '.achievement-holder', 'table.achievement-latest']
+    : (section === 'challenges' ? ['.achievements-content', 'table.challenges'] : ['.achievements-content', '.achievement-info']);
+  const candidates = Array.from(document.querySelectorAll('div, section, article, table, tbody'))
+    .filter(element => !element.closest('#thc-optimizer-overlay'))
+    .filter(element => selectors.some(selector => element.matches(selector) || element.querySelector(selector)))
+    .filter(element => {
+      if (section === 'summary') {
+        return element.querySelector('.achievement-holder') || element.querySelector('table.achievement-latest');
+      }
+      if (section === 'challenges') {
+        return element.querySelector('table.challenges tbody tr');
+      }
+      return element.querySelector('.achievement-info');
+    })
+    .map(element => ({ element, rect: element.getBoundingClientRect() }))
+    .filter(item => item.rect.width >= 300 && item.rect.height >= 100)
+    .sort((left, right) => (left.rect.width * left.rect.height) - (right.rect.width * right.rect.height));
+
+  return candidates.length ? candidates[0].element : null;
+}
+
 function clearProfileDashboardMountTimer() {
   if (profileDashboardMountTimer) {
     clearInterval(profileDashboardMountTimer);
@@ -900,6 +1147,7 @@ function escapeHtml(value) {
 
 function closeProfileDashboard() {
   clearProfileDashboardMountTimer();
+  showProfileAchievementsOfficialData();
   document.querySelectorAll('.thc-profile-dashboard-inline').forEach(element => {
     const original = element.getAttribute('data-thc-profile-vision-original');
     if (original != null) element.innerHTML = original;
@@ -913,6 +1161,14 @@ function showProfileDashboardLoading(target, loaderHtml) {
   target.setAttribute('data-thc-profile-vision-original', target.innerHTML);
   target.classList.add('thc-profile-dashboard-inline');
   target.innerHTML = loaderHtml;
+}
+
+function hideProfileAchievementsOfficialData() {
+  document.body.classList.add('thc-profile-achievements-official-hidden');
+}
+
+function showProfileAchievementsOfficialData() {
+  document.body.classList.remove('thc-profile-achievements-official-hidden');
 }
 
 function renderProfileDashboardLoading() {
@@ -951,6 +1207,14 @@ function renderProfileCollectablesDashboardFrame(username) {
   return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana coleccionables" src="${dashboardUrl}"></iframe>`;
 }
 
+function renderProfileAchievementsDashboardFrame(username, section) {
+  const dashboardUrl = buildProfileAchievementsDashboardUrl(username, section);
+  if (!dashboardUrl) {
+    return '<div class="thc-profile-dashboard-empty">Dashboard pendiente de configurar.</div>';
+  }
+  return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana logros" src="${dashboardUrl}"></iframe>`;
+}
+
 function buildProfileDashboardUrl(username) {
   if (!GRAFANA_PROFILE_DASHBOARD_URL) return '';
   const url = new URL(GRAFANA_PROFILE_DASHBOARD_URL);
@@ -981,6 +1245,10 @@ function buildProfileCollectablesDashboardUrl(username) {
   url.searchParams.set('var-profile_username', username);
   if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
   return url.toString();
+}
+
+function buildProfileAchievementsDashboardUrl(username, section) {
+  return '';
 }
 
 // Cargar las competiciones desde la API nativa
