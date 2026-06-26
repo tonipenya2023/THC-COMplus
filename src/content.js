@@ -21,17 +21,31 @@ let officialDetailFrame = null;
 let officialDetailLoadToken = 0;
 let profileDashboardUsername = null;
 let profileDashboardMountTimer = null;
+let profileAchievementsDomObserver = null;
 
 let activeDesign = localStorage.getItem('thc-competition-design') || 'modern';
 let classicSort = { key: 'name', direction: 'asc' };
 
-const PROFILE_HASH_PATTERN = /^#profile\/([^/]+)(?:\/ranks(?:\/([^/]+))?)?\/?$/;
+const PROFILE_HASH_PATTERN = /^#profile\/([^/]+)(?:(?:\/ranks(?:\/([^/]+))?)|(?:\/achievements(?:\/([^/]+))?)|(?:\/skills(?:\/([^/]+))?)|(?:\/statistics(?:\/([^/]+))?))?\/?$/;
 const GRAFANA_PROFILE_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/cb2e199e2d374da2a4bb2d20b4e01025';
 const GRAFANA_PROFILE_ANIMALS_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/fff95e6762304a2399395d7337a2c526';
 const GRAFANA_PROFILE_WEAPONS_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/a073af32d3ea42fd9e42d8190c489310';
 const GRAFANA_PROFILE_COLLECTABLES_DASHBOARD_URL = 'https://thc-addon.duckdns.org/public-dashboards/60fa840e5d9245d2aeb26ab587918b68';
+const GRAFANA_PROFILE_ACHIEVEMENTS_DASHBOARD_URLS = {
+  animals: 'https://thc-addon.duckdns.org/public-dashboards/e321fbfcfa1c4376b35ac8951cd231a0',
+  weapons: 'https://thc-addon.duckdns.org/public-dashboards/ae150c3a762c47ce93032dd0a3d5f079',
+  exploration: 'https://thc-addon.duckdns.org/public-dashboards/46daaa63fdb34032b2227156f808f6d7',
+  day_mission: 'https://thc-addon.duckdns.org/public-dashboards/61baa7ca8c2d4a5fb28bfecae244acf0',
+  challenges: 'https://thc-addon.duckdns.org/public-dashboards/52df2309318e4d0a98ec707e703c30d6',
+  summary: 'https://thc-addon.duckdns.org/public-dashboards/66acc2f7d1fc4cadb575a813cf3cfb77'
+};
+const GRAFANA_PROFILE_SKILLS_DASHBOARD_URLS = {};
+const GRAFANA_PROFILE_STATISTICS_DASHBOARD_URLS = {};
 const PROFILE_VISION_API_URL = 'http://127.0.0.1:8080/api/profile-vision-gral';
 const PROFILE_ANIMALS_API_URL = PROFILE_VISION_API_URL;
+const PROFILE_ACHIEVEMENT_SECTIONS = new Set(['animals', 'weapons', 'exploration', 'day_mission', 'challenges', 'summary']);
+const PROFILE_SKILL_SECTIONS = new Set(['species', 'weapons']);
+const PROFILE_STATISTICS_SECTIONS = new Set(['lifetime', 'history', 'best']);
 
 const ANIMAL_ICON_FILES = {
   'alce': 'moose-male-common.png', 'banteng': 'banteng-male-common.png', 'bisonte': 'bisonte.png',
@@ -82,6 +96,7 @@ async function init() {
   
   // Comprobación periódica por si el routing de la SPA no dispara hashchange
   setInterval(handleUrlChange, 1000);
+  observeProfileAchievementsDom();
   
   // Comprobación inicial
   handleUrlChange();
@@ -210,6 +225,15 @@ function handleUrlChange() {
   const isCompetitionsPage = currentHash === '#competitions';
   const profileUsername = profileMatch ? decodeURIComponent(profileMatch[1]) : '';
   const profileRanksSection = profileMatch ? String(profileMatch[2] || '') : '';
+  const profileAchievementsSection = profileMatch && currentHash.includes('/achievements')
+    ? String(profileMatch[3] || 'summary')
+    : '';
+  const profileSkillsSection = profileMatch && currentHash.includes('/skills')
+    ? String(profileMatch[4] || 'species')
+    : '';
+  const profileStatisticsSection = profileMatch && currentHash.includes('/statistics')
+    ? String(profileMatch[5] || 'lifetime')
+    : '';
   console.log("[THC Addon] Cambio de URL procesado. Nuevo hash:", currentHash, "| ¿Es competiciones?:", isCompetitionsPage);
   
   // Gestionar visibilidad del botón flotante
@@ -256,6 +280,27 @@ function handleUrlChange() {
       toggleBtn.style.display = 'none';
     }
     mountProfileCollectables(profileUsername, profileDashboardLoader);
+  } else if (profileUsername && PROFILE_ACHIEVEMENT_SECTIONS.has(profileAchievementsSection)) {
+    closeOverlay();
+    closeProfileDashboard();
+    if (toggleBtn) {
+      toggleBtn.style.display = 'none';
+    }
+    mountProfileAchievements(profileUsername, profileAchievementsSection, profileDashboardLoader);
+  } else if (profileUsername && PROFILE_SKILL_SECTIONS.has(profileSkillsSection)) {
+    closeOverlay();
+    closeProfileDashboard();
+    if (toggleBtn) {
+      toggleBtn.style.display = 'none';
+    }
+    mountProfileGenericRows(profileUsername, 'skills', profileSkillsSection, profileDashboardLoader);
+  } else if (profileUsername && PROFILE_STATISTICS_SECTIONS.has(profileStatisticsSection)) {
+    closeOverlay();
+    closeProfileDashboard();
+    if (toggleBtn) {
+      toggleBtn.style.display = 'none';
+    }
+    mountProfileGenericRows(profileUsername, 'statistics', profileStatisticsSection, profileDashboardLoader);
   } else if (profileUsername && !profileRanksSection) {
     closeOverlay();
     if (toggleBtn) {
@@ -272,6 +317,17 @@ function handleUrlChange() {
 }
 
 // Crear botón flotante de activación
+function observeProfileAchievementsDom() {
+  if (profileAchievementsDomObserver || !document.body) return;
+  profileAchievementsDomObserver = new MutationObserver(() => {
+    if (!window.location.hash.includes('/achievements')) return;
+    if (document.querySelector('.thc-profile-dashboard-inline[data-thc-profile-dashboard="achievements"]')) return;
+    lastHash = '';
+    handleUrlChange();
+  });
+  profileAchievementsDomObserver.observe(document.body, { childList: true, subtree: true });
+}
+
 function createToggleBtn() {
   const btn = document.createElement('button');
   btn.id = 'thc-toggle-view-btn';
@@ -390,6 +446,48 @@ function mountProfileCollectables(username, loaderHtml) {
   }, 100);
 }
 
+function mountProfileAchievements(username, section, loaderHtml) {
+  clearProfileDashboardMountTimer();
+  let attempts = 0;
+  profileDashboardMountTimer = setInterval(() => {
+    attempts++;
+    const target = findProfileAchievementsContainer(section);
+    if (!target) {
+      if (attempts >= 80) clearProfileDashboardMountTimer();
+      return;
+    }
+
+    clearProfileDashboardMountTimer();
+    const payload = buildProfileAchievementsPayload(username, section, target);
+    showProfileDashboardLoading(target, loaderHtml, 'achievements');
+    saveProfileAchievements(payload).catch(error => {
+      console.error('[THC Addon] Error al guardar logros del perfil:', error);
+    }).finally(() => {
+      target.innerHTML = renderProfileAchievementsDashboardFrame(username, section);
+    });
+  }, 100);
+}
+
+function mountProfileGenericRows(username, kind, section, loaderHtml) {
+  let attempts = 0;
+  profileDashboardMountTimer = setInterval(() => {
+    attempts++;
+    const target = findProfileGenericRowsContainer(kind);
+    if (!target) {
+      if (attempts >= 80) clearProfileDashboardMountTimer();
+      return;
+    }
+
+    clearProfileDashboardMountTimer();
+    showProfileDashboardLoading(target, loaderHtml);
+    saveProfileGenericRows(username, kind, section, target).catch(error => {
+      console.error('[THC Addon] Error al guardar datos del perfil:', error);
+    }).finally(() => {
+      target.innerHTML = renderProfileGenericRowsDashboardFrame(username, kind, section);
+    });
+  }, 100);
+}
+
 async function saveProfileVisionGeneral(username, target) {
   const payload = buildProfileVisionPayload(username, target);
   if (!payload) return;
@@ -439,6 +537,31 @@ async function saveProfileCollectables(username, target) {
   });
   if (!response.ok) {
     throw new Error(`profile collectables save failed: ${response.status}`);
+  }
+}
+
+async function saveProfileAchievements(payload) {
+  if (!payload) return;
+  const response = await fetch(PROFILE_VISION_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`profile achievements save failed: ${response.status}`);
+  }
+}
+
+async function saveProfileGenericRows(username, kind, section, target) {
+  const payload = buildProfileGenericRowsPayload(username, kind, section, target);
+  if (!payload) return;
+  const response = await fetch(PROFILE_VISION_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`profile ${kind} save failed: ${response.status}`);
   }
 }
 
@@ -495,6 +618,38 @@ function buildProfileCollectablesPayload(username, target) {
     oauth_access_token: userAccessToken,
     page_url: window.location.href,
     collectables
+  };
+}
+
+function buildProfileAchievementsPayload(username, section, target) {
+  const userId = currentUserId || readProfileUserId();
+  if (!userId || !PROFILE_ACHIEVEMENT_SECTIONS.has(section)) return null;
+  const rows = readProfileAchievementRows(target);
+  if (!rows.length) return null;
+  return {
+    user_id: userId,
+    profile_username: username,
+    oauth_access_token: userAccessToken,
+    page_url: window.location.href,
+    section,
+    rows
+  };
+}
+
+function buildProfileGenericRowsPayload(username, kind, section, target) {
+  const userId = currentUserId || readProfileUserId();
+  const allowedSections = kind === 'skills' ? PROFILE_SKILL_SECTIONS : PROFILE_STATISTICS_SECTIONS;
+  if (!userId || !allowedSections.has(section)) return null;
+  const rows = readProfileGenericRows(target);
+  if (!rows.length) return null;
+  return {
+    user_id: userId,
+    profile_username: username,
+    oauth_access_token: userAccessToken,
+    page_url: window.location.href,
+    kind,
+    section,
+    rows
   };
 }
 
@@ -589,6 +744,69 @@ function readProfileCollectableRank(container, rankOrder) {
   };
 }
 
+function readProfileAchievementRows(target) {
+  const candidates = Array.from(target.querySelectorAll('li, tr, .achievement, .achievement-row, .achievement-item, .media, .row'))
+    .filter(element => !element.closest('.thc-profile-dashboard-inline'))
+    .filter(element => normalizeWhitespace(element.textContent).length >= 3);
+  const sourceRows = candidates.length ? candidates : Array.from(target.children);
+  return sourceRows
+    .map((element, index) => readProfileAchievementRow(element, index + 1))
+    .filter(Boolean);
+}
+
+function readProfileAchievementRow(element, order) {
+  const text = normalizeWhitespace(element.textContent);
+  if (!text) return null;
+  if (/^Cargando panel/i.test(text)) return null;
+  const image = element.querySelector('img');
+  const titleElement = element.querySelector('h1,h2,h3,h4,h5,.title,.name,strong,b') || image;
+  const achievementTitle = normalizeWhitespace(titleElement ? (titleElement.getAttribute('alt') || titleElement.getAttribute('title') || titleElement.textContent) : '');
+  const progress = parseProgressText(text);
+  return {
+    row_type: 'achievement',
+    orden: order,
+    achievement_title: achievementTitle || text.slice(0, 120),
+    achievement_icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+    completed: /completed|complete|unlocked|desbloqueado|completado/i.test(text),
+    completed_count: progress ? progress.current : null,
+    total_count: progress ? progress.total : null,
+    progress_pct: progress ? progress.percent : null,
+    raw_text: text
+  };
+}
+
+function readProfileGenericRows(target) {
+  const candidates = Array.from(target.querySelectorAll('li, tr, .row, .media, .skill, .skill-row, .stat, .stat-row'))
+    .filter(element => !element.closest('.thc-profile-dashboard-inline'))
+    .filter(element => normalizeWhitespace(element.textContent).length >= 2);
+  const sourceRows = candidates.length ? candidates : Array.from(target.children);
+  return sourceRows
+    .map((element, index) => readProfileGenericRow(element, index + 1))
+    .filter(Boolean);
+}
+
+function readProfileGenericRow(element, order) {
+  const text = normalizeWhitespace(element.textContent);
+  if (!text) return null;
+  const image = element.querySelector('img');
+  const titleElement = element.querySelector('h1,h2,h3,h4,h5,.title,.name,strong,b,dt') || image;
+  const title = normalizeWhitespace(titleElement ? (titleElement.getAttribute('alt') || titleElement.getAttribute('title') || titleElement.textContent) : '');
+  const progress = parseProgressText(text);
+  const valueMatch = text.match(/[-+]?\d+(?:[.,]\d+)?/);
+  return {
+    row_type: 'row',
+    orden: order,
+    title: title || text.slice(0, 120),
+    icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+    value: text,
+    value_num: valueMatch ? Number(valueMatch[0].replace(',', '.')) : null,
+    progress_value: progress ? progress.current : null,
+    progress_target: progress ? progress.total : null,
+    progress_pct: progress ? progress.percent : null,
+    raw_text: text
+  };
+}
+
 function findProgressDataElements(target) {
   const seen = new Set();
   const candidates = Array.from(target.querySelectorAll('div, span, a, li'))
@@ -651,6 +869,10 @@ function collectElementOwnDataText(element) {
     }
   });
   return values.filter(Boolean).join(' ');
+}
+
+function normalizeWhitespace(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
 function parseProgressText(text) {
@@ -729,6 +951,66 @@ function findProfileRanksContainer() {
     })
     .map(element => ({ element, rect: element.getBoundingClientRect() }))
     .filter(item => item.rect.width >= 300 && item.rect.height >= 150)
+    .sort((left, right) => (left.rect.width * left.rect.height) - (right.rect.width * right.rect.height));
+
+  return candidates.length ? candidates[0].element : null;
+}
+
+function findProfileAchievementsContainer(section) {
+  const navigationText = /Ranks|Habilidades|Estadísticas|Galería|Trofeos|Perros|Amigos|Visión general|Animales|Armas|Exploración|Misiones Diarias|Challenges/i;
+  const sectionText = {
+    summary: /Progreso|Logros Recientes|Logros Desbloqueados|Assassin|Truffle Pig/i,
+    animals: /Animales|Animal|Animals|Capturas|Caza/i,
+    weapons: /Armas|Weapon|Weapons|Rifle|Pistola|Escopeta|Bow/i,
+    exploration: /Exploraci|Exploration|Reserva|Reserve/i,
+    day_mission: /Misi|Misiones Diarias|Daily Mission|Dailies/i,
+    challenges: /Assassin|Truffle Pig|Raining Ducks|Far and Away|Fast Food|Triple Score|Pincushion|Lucky Luke/i
+  };
+  const contentPattern = sectionText[section] || /achievement|achievements|logro|logros/i;
+  const candidates = Array.from(document.querySelectorAll('div, section, article, table, tbody, ul'))
+    .filter(element => !element.closest('#thc-optimizer-overlay'))
+    .filter(element => !element.closest('.thc-profile-dashboard-inline'))
+    .map(element => {
+      const text = normalizeWhitespace(element.textContent);
+      const images = element.querySelectorAll('img');
+      const rows = element.querySelectorAll('li, tr, .row, .media');
+      const navigationItems = Array.from(element.querySelectorAll('a, button'))
+        .filter(item => navigationText.test(normalizeWhitespace(item.textContent))).length;
+      return {
+        element,
+        images: images.length,
+        rows: rows.length,
+        hasNavigation: navigationItems > 0,
+        matchesSection: contentPattern.test(text),
+        matchesGeneric: /achievement|achievements|logro|logros|unlocked|desbloqueado/i.test(text)
+      };
+    })
+    .filter(item => item.matchesSection || item.images >= 2 || item.rows >= 2 || item.matchesGeneric)
+    .map(item => ({ ...item, rect: item.element.getBoundingClientRect() }))
+    .filter(item => item.rect.width >= 300 && item.rect.height >= 120)
+    .sort((left, right) => {
+      if (left.matchesSection !== right.matchesSection) return left.matchesSection ? -1 : 1;
+      if (left.hasNavigation !== right.hasNavigation) return left.hasNavigation ? 1 : -1;
+      return (left.rect.width * left.rect.height) - (right.rect.width * right.rect.height);
+    });
+
+  return candidates.length ? candidates[0].element : null;
+}
+
+function findProfileGenericRowsContainer(kind) {
+  const pattern = kind === 'skills'
+    ? /skill|skills|habilidad|habilidades|weapon|weapons|arma|armas/i
+    : /statistic|statistics|estad/i;
+  const candidates = Array.from(document.querySelectorAll('div, section, article, table, tbody, ul, dl'))
+    .filter(element => !element.closest('#thc-optimizer-overlay'))
+    .filter(element => !element.closest('.thc-profile-dashboard-inline'))
+    .filter(element => {
+      const text = normalizeWhitespace(element.textContent);
+      const rows = element.querySelectorAll('li, tr, .row, .media, dt, dd');
+      return rows.length >= 2 || pattern.test(text);
+    })
+    .map(element => ({ element, rect: element.getBoundingClientRect() }))
+    .filter(item => item.rect.width >= 300 && item.rect.height >= 120)
     .sort((left, right) => (left.rect.width * left.rect.height) - (right.rect.width * right.rect.height));
 
   return candidates.length ? candidates[0].element : null;
@@ -905,13 +1187,20 @@ function closeProfileDashboard() {
     if (original != null) element.innerHTML = original;
     element.classList.remove('thc-profile-dashboard-inline');
     element.removeAttribute('data-thc-profile-vision-original');
+    element.removeAttribute('data-thc-profile-dashboard');
+    element.style.removeProperty('--thc-profile-dashboard-height');
   });
 }
 
-function showProfileDashboardLoading(target, loaderHtml) {
+function showProfileDashboardLoading(target, loaderHtml, variant) {
   if (!target) return;
+  if (variant === 'achievements') {
+    const rect = target.getBoundingClientRect();
+    target.style.setProperty('--thc-profile-dashboard-height', `${Math.max(360, Math.ceil(rect.height))}px`);
+  }
   target.setAttribute('data-thc-profile-vision-original', target.innerHTML);
   target.classList.add('thc-profile-dashboard-inline');
+  if (variant) target.setAttribute('data-thc-profile-dashboard', variant);
   target.innerHTML = loaderHtml;
 }
 
@@ -951,6 +1240,14 @@ function renderProfileCollectablesDashboardFrame(username) {
   return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana coleccionables" src="${dashboardUrl}"></iframe>`;
 }
 
+function renderProfileAchievementsDashboardFrame(username, section) {
+  const dashboardUrl = buildProfileAchievementsDashboardUrl(username, section);
+  if (!dashboardUrl) {
+    return '<div class="thc-profile-dashboard-empty">Dashboard pendiente de configurar.</div>';
+  }
+  return `<iframe class="thc-profile-dashboard-frame" title="Dashboard Grafana logros" src="${dashboardUrl}"></iframe>`;
+}
+
 function buildProfileDashboardUrl(username) {
   if (!GRAFANA_PROFILE_DASHBOARD_URL) return '';
   const url = new URL(GRAFANA_PROFILE_DASHBOARD_URL);
@@ -979,6 +1276,16 @@ function buildProfileCollectablesDashboardUrl(username) {
   if (!GRAFANA_PROFILE_COLLECTABLES_DASHBOARD_URL) return '';
   const url = new URL(GRAFANA_PROFILE_COLLECTABLES_DASHBOARD_URL);
   url.searchParams.set('var-profile_username', username);
+  if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
+  return url.toString();
+}
+
+function buildProfileAchievementsDashboardUrl(username, section) {
+  const dashboardUrl = GRAFANA_PROFILE_ACHIEVEMENTS_DASHBOARD_URLS[section] || '';
+  if (!dashboardUrl) return '';
+  const url = new URL(dashboardUrl);
+  url.searchParams.set('var-profile_username', username);
+  url.searchParams.set('var-section', section);
   if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
   return url.toString();
 }

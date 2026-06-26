@@ -46,6 +46,18 @@
   display: block;
 }
 
+.thc-profile-dashboard-inline[data-thc-profile-dashboard="achievements"] {
+  height: var(--thc-profile-dashboard-height, auto) !important;
+  min-height: var(--thc-profile-dashboard-height, 360px) !important;
+}
+
+.thc-profile-dashboard-inline[data-thc-profile-dashboard="achievements"] .thc-profile-dashboard-frame,
+.thc-profile-dashboard-inline[data-thc-profile-dashboard="achievements"] .thc-profile-dashboard-loading,
+.thc-profile-dashboard-inline[data-thc-profile-dashboard="achievements"] .thc-profile-dashboard-empty {
+  height: 100%;
+  min-height: 100%;
+}
+
 .thc-profile-dashboard-empty {
   min-height: max(3600px, calc(100vh - 80px));
   display: grid;
