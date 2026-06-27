@@ -46,6 +46,40 @@
   display: block;
 }
 
+.thc-profile-dashboard-inline[data-thc-profile-dashboard="vision-general"] {
+  overflow: visible !important;
+}
+
+#profile.thc-profile-dashboard-active #profile-ribbon {
+  display: none !important;
+}
+
+.thc-profile-dashboard-inline[data-thc-profile-dashboard="vision-general"] .thc-profile-dashboard-loading {
+  margin-left: calc(-1 * var(--thc-profile-dashboard-offset-left, 0px));
+  width: calc(100% + var(--thc-profile-dashboard-offset-left, 0px));
+}
+
+.thc-profile-dashboard-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-left: calc(-1 * var(--thc-profile-dashboard-offset-left, 0px));
+  width: calc(100% + var(--thc-profile-dashboard-offset-left, 0px));
+}
+
+.thc-profile-rank-strip-image {
+  flex: 0 0 auto;
+  width: 118px;
+  height: auto;
+  display: block;
+}
+
+.thc-profile-dashboard-layout .thc-profile-dashboard-frame,
+.thc-profile-dashboard-layout .thc-profile-dashboard-empty {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .thc-profile-dashboard-inline[data-thc-profile-dashboard="achievements"] {
   height: var(--thc-profile-dashboard-height, auto) !important;
   min-height: var(--thc-profile-dashboard-height, 360px) !important;
