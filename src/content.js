@@ -825,10 +825,33 @@ function readProfileAchievementsSummary(target) {
     const indicatorText = normalizeWhitespace(indicator ? indicator.textContent : '');
     const match = indicatorText.match(/^(.+?)\s+[^:]+:\s*(\d+)\s*\/\s*(\d+)\s*\(?\s*(\d+(?:[.,]\d+)?)\s*%?\)?/);
     const progress = container.querySelector('.achievement-progress');
+    let iconUrl = readCategoryIconUrl(container.previousElementSibling || container);
+    const categoryTitle = match ? match[1].trim() : indicatorText;
+    if (iconUrl && iconUrl.includes('achievement-progress-icons.png')) {
+      const normTitle = categoryTitle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      let cacheKey = normTitle;
+      if (normTitle.includes('explor')) {
+        cacheKey = 'coleccionables';
+      }
+      const cachedUrl = localStorage.getItem(`thc-icon-${cacheKey}`);
+      if (cachedUrl) {
+        iconUrl = cachedUrl;
+      } else {
+        if (normTitle.includes('animal')) {
+          iconUrl = 'https://static.thehunter.com/static/img/ranks/rank_animals.png';
+        } else if (normTitle.includes('arma') || normTitle.includes('weapon')) {
+          iconUrl = 'https://static.thehunter.com/static/img/ranks/rank_weapons.png';
+        } else if (normTitle.includes('explor') || normTitle.includes('collect')) {
+          iconUrl = 'https://static.thehunter.com/static/img/ranks/rank_collectables.png';
+        }
+      }
+    }
+    console.log(`[Logros Resumen] Categoría: "${categoryTitle}" -> URL Icono: ${iconUrl}`);
     rows.push({
       orden: index + 1,
       row_type: 'category_progress',
-      category_title: match ? match[1].trim() : indicatorText,
+      category_title: categoryTitle,
+      achievement_icon_url: iconUrl,
       completed_count: match ? Number(match[2]) : null,
       total_count: match ? Number(match[3]) : null,
       progress_pct: match ? Number(match[4].replace(',', '.')) : readPercentageAttribute(progress),
@@ -839,16 +862,19 @@ function readProfileAchievementsSummary(target) {
     const cells = row.querySelectorAll('td');
     if (cells.length < 4) return;
     const image = cells[0].querySelector('img');
+    const iconUrl = image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null;
+    const title = normalizeWhitespace(cells[1].querySelector('b')?.textContent || '') || null;
+    console.log(`[Logros Resumen] Reciente: "${title}" -> URL Icono: ${iconUrl}`);
     rows.push({
       orden: index + 1,
       row_type: 'latest',
-      achievement_title: normalizeWhitespace(cells[1].querySelector('b')?.textContent || '') || null,
+      achievement_title: title,
       achievement_description: Array.from(cells[1].childNodes)
         .map(node => node.nodeType === Node.TEXT_NODE ? node.textContent : '')
         .join(' ')
         .replace(/\s+/g, ' ')
         .trim() || null,
-      achievement_icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+      achievement_icon_url: iconUrl,
       achievement_date: normalizeWhitespace(cells[2].textContent) || null,
       value: normalizeWhitespace(cells[3].textContent) || null,
       raw_text: normalizeWhitespace(row.textContent)
@@ -1025,12 +1051,18 @@ function readHunterScoreCategory(target, source) {
 function readProgressCategory(categoria, source, iconElement) {
   const text = source ? (collectElementOwnDataText(source) || source.textContent) : '';
   const parsed = parseProgressText(text);
+  const iconUrl = readCategoryIconUrl(iconElement || source || document);
+  if (iconUrl) {
+    try {
+      localStorage.setItem(`thc-icon-${normalizeIconName(categoria)}`, iconUrl);
+    } catch (e) {}
+  }
   return {
     categoria,
     valor_actual: parsed ? parsed.current : null,
     valor_total: parsed ? parsed.total : null,
     porcentaje_actual: parsed ? parsed.percent : null,
-    icon_url: readCategoryIconUrl(iconElement || source || document)
+    icon_url: iconUrl
   };
 }
 
@@ -1078,10 +1110,25 @@ function parseProgressText(text) {
 }
 
 function readCategoryIconUrl(root) {
-  const image = root && root.matches && root.matches('img.rank-progress-icon')
+  if (!root) return null;
+  const image = root.matches?.('img.rank-progress-icon')
     ? root
-    : root && root.querySelector ? root.querySelector('img.rank-progress-icon') : null;
-  return image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null;
+    : root.querySelector?.('img.rank-progress-icon');
+  if (image) {
+    return normalizeTheHunterAssetUrl(image.currentSrc || image.src);
+  }
+  try {
+    const bg = window.getComputedStyle(root).backgroundImage;
+    if (bg && bg !== 'none') {
+      const match = bg.match(/url\((['"]?)(.*?)\1\)/);
+      if (match) {
+        return normalizeTheHunterAssetUrl(match[2]);
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return null;
 }
 
 function normalizeTheHunterAssetUrl(value) {
