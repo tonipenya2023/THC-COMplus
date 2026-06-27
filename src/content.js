@@ -654,9 +654,23 @@ function buildProfileCollectablesPayload(username, target) {
 function buildProfileAchievementsPayload(username, section, target) {
   const userId = currentUserId || readProfileUserId();
   if (!userId || !PROFILE_ACHIEVEMENT_SECTIONS.has(section)) return null;
-  const rows = section === 'summary'
-    ? readProfileAchievementsSummary(target)
-    : readProfileAchievementRows(target);
+  
+  let rows;
+  if (section === 'summary') {
+    rows = readProfileAchievementsSummary(target);
+  } else if (section === 'challenges') {
+    rows = readProfileChallengeRows(target);
+    console.log('[THC Addon] Datos obtenidos de logros desafíos:', {
+      user_id: userId,
+      profile_username: username,
+      page_url: window.location.href,
+      section,
+      rows
+    });
+  } else {
+    rows = readProfileAchievementRows(target);
+  }
+  
   if (!rows.length) return null;
   return {
     user_id: userId,
@@ -817,6 +831,123 @@ function readProfileAchievementRow(element, order) {
     raw_text: text
   };
 }
+
+const OFFICIAL_CHALLENGES = {
+  'Assassin': { id: 15, desc: 'Kill three animals within 5 minutes', img: 'https://photo.thehunter.com/challenges/Assassin_150.png' },
+  'Truffle Pig': { id: 17, desc: 'Find five mushrooms in one hunt', img: 'https://photo.thehunter.com/challenges/Truffle_Pig_150.png' },
+  'Raining Ducks': { id: 19, desc: 'Kill three ducks with the same shot', img: 'https://photo.thehunter.com/challenges/Raining_Ducks_150.png' },
+  'Far and Away': { id: 20, desc: 'Harvest a European Rabbit shot from over 250m', img: 'https://photo.thehunter.com/challenges/Far_and_Away_150.png' },
+  'Far & Away': { id: 20, desc: 'Harvest a European Rabbit shot from over 250m', img: 'https://photo.thehunter.com/challenges/Far_and_Away_150.png' },
+  'Fast Food': { id: 21, desc: 'Harvest 10 Roosevelt Elk within 5 minutes', img: 'https://photo.thehunter.com/challenges/Fast_Food_150.png' },
+  'Triple Score': { id: 22, desc: 'Kill three land animals with the same shot', img: 'https://photo.thehunter.com/challenges/Triple_Score_150.png' },
+  'Pincushion': { id: 23, desc: 'Hit the same animal five or more times with arrows', img: 'https://photo.thehunter.com/challenges/Pincushion_150.png' },
+  'When Good Aim Goes Bad': { id: 24, desc: 'Read 20 blood tracks from the same animal', img: 'https://photo.thehunter.com/challenges/When_Good_Aim_Goes_Bad_150.png' },
+  'Lucky Luke': { id: 25, desc: 'Kill an albino', img: 'https://photo.thehunter.com/challenges/Lucky Luke_150.png' },
+  "Grandpa's Way": { id: 28, desc: 'Harvest a Brown Bear from over 150m with a classic rifle and no sight', img: "https://photo.thehunter.com/challenges/Grandpa's Way_150.png" },
+  'Silent Sniper': { id: 29, desc: 'Harvest a Turkey that was shot from over 88m with a crossbow pistol with a heart shot.', img: 'https://photo.thehunter.com/challenges/Silent Sniper_150.png' }
+};
+
+function readProfileChallengeRows(target) {
+  const candidates = Array.from(target.querySelectorAll('table.challenges tbody tr'))
+    .filter(element => !element.closest('.thc-profile-dashboard-inline'))
+    .filter(element => normalizeWhitespace(element.textContent).length >= 3);
+  const sourceRows = candidates.length ? candidates : Array.from(target.children);
+  return sourceRows
+    .map((element, index) => readProfileChallengeRow(element, index + 1))
+    .filter(Boolean);
+}
+
+function readProfileChallengeRow(element, order) {
+  const text = normalizeWhitespace(element.textContent);
+  if (!text) return null;
+  if (/^Cargando panel/i.test(text)) return null;
+  
+  const image = element.querySelector('img');
+  const titleElement = element.querySelector('h1,h2,h3,h4,h5,.title,.name,strong,b') || image;
+  const achievementTitle = normalizeWhitespace(titleElement ? (titleElement.getAttribute('alt') || titleElement.getAttribute('title') || titleElement.textContent) : '');
+  
+  // Buscar coincidencia en el diccionario oficial
+  let matchedKey = Object.keys(OFFICIAL_CHALLENGES).find(key => 
+    achievementTitle.toLowerCase().includes(key.toLowerCase()) || 
+    key.toLowerCase().includes(achievementTitle.toLowerCase())
+  );
+  
+  let challengeId = 0;
+  let description = '';
+  let title = achievementTitle;
+
+  if (matchedKey) {
+    const official = OFFICIAL_CHALLENGES[matchedKey];
+    challengeId = official.id;
+    description = official.desc;
+    // Si la coincidencia tiene '&', usamos el título oficial con 'and'
+    title = matchedKey === 'Far & Away' ? 'Far and Away' : matchedKey;
+  } else {
+    // Fallback si no está mapeado estáticamente
+    let cleanText = text;
+    if (achievementTitle) {
+      cleanText = cleanText.replace(achievementTitle, '');
+    }
+    cleanText = cleanText.replace(/\d+\s*\/\s*\d+\s*\(?\d*(?:[.,]\d+)?%?\)?/g, '');
+    cleanText = cleanText.replace(/completed|complete|unlocked|desbloqueado|completado/i, '');
+    description = normalizeWhitespace(cleanText);
+  }
+  
+  // Buscar fecha en el texto (formato AAAA-MM-DD)
+  const dateMatch = text.match(/\b\d{4}-\d{2}-\d{2}\b/);
+  let completed = false;
+  let challengeDate = null;
+  
+  if (dateMatch) {
+    completed = true;
+    challengeDate = dateMatch[0];
+  } else {
+    // Fallback: verificar si el icono está atenuado
+    if (image) {
+      const computedStyle = window.getComputedStyle(image);
+      const hasGrayscaleFilter = computedStyle.filter?.includes('grayscale') || 
+                                 computedStyle.webkitFilter?.includes('grayscale') ||
+                                 image.classList.contains('attenuated') ||
+                                 image.classList.contains('grayscale');
+      const opacityValue = parseFloat(computedStyle.opacity || '1');
+      const isAttenuated = hasGrayscaleFilter || opacityValue < 0.9;
+      completed = !isAttenuated;
+    }
+  }
+
+  // Obtener la URL de la imagen del DOM o del mapeo oficial
+  let imageUrl = image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null;
+  if (!imageUrl && matchedKey) {
+    imageUrl = OFFICIAL_CHALLENGES[matchedKey].img;
+  }
+  
+  if (imageUrl) {
+    if (imageUrl.startsWith('//')) {
+      imageUrl = 'https:' + imageUrl;
+    }
+    // Si no está completado, aplicamos el filtro de escala de grises usando la CDN weserv.nl
+    if (!completed) {
+      const cleanUrl = imageUrl.replace(/^https?:\/\//i, '');
+      imageUrl = `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&filt=greyscale`;
+    }
+  }
+  
+  return {
+    challenge_id: challengeId,
+    title: title || text.slice(0, 120),
+    description: description || null,
+    image_url: imageUrl,
+    completed: completed,
+    in_progress: false,
+    completed_count: null,
+    total_count: null,
+    progress_pct: null,
+    challenge_date: challengeDate,
+    orden: order,
+    raw_text: text
+  };
+}
+
 
 function readProfileAchievementsSummary(target) {
   const rows = [];
@@ -1225,11 +1356,7 @@ function hasProfileAchievementsSectionContent(section, element) {
     );
   }
   if (section === 'challenges') {
-    const text = normalizeWhitespace(element.textContent);
-    return Boolean(
-      element.querySelector('table.challenges tbody tr') ||
-      /Challenges|Challenge|Desaf|Assassin|Truffle Pig|Raining Ducks|Far and Away|Fast Food|Triple Score|Pincushion|Lucky Luke/i.test(text)
-    );
+    return Boolean(element.querySelector('table.challenges tbody tr'));
   }
   return true;
 }
