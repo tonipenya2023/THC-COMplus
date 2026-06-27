@@ -220,7 +220,6 @@ function handleUrlChange() {
     return;
   }
   
-  lastHash = currentHash;
   const profileMatch = currentHash.match(PROFILE_HASH_PATTERN);
   const isCompetitionsPage = currentHash === '#competitions';
   const profileUsername = profileMatch ? decodeURIComponent(profileMatch[1]) : '';
@@ -259,7 +258,9 @@ function handleUrlChange() {
         openOverlay();
       }
     }
+    lastHash = currentHash;
   } else if (profileUsername && profileRanksSection === 'animals') {
+    lastHash = currentHash;
     closeOverlay();
     closeProfileDashboard();
     if (toggleBtn) {
@@ -267,6 +268,7 @@ function handleUrlChange() {
     }
     mountProfileAnimals(profileUsername, profileDashboardLoader);
   } else if (profileUsername && profileRanksSection === 'weapons') {
+    lastHash = currentHash;
     closeOverlay();
     closeProfileDashboard();
     if (toggleBtn) {
@@ -274,6 +276,7 @@ function handleUrlChange() {
     }
     mountProfileWeapons(profileUsername, profileDashboardLoader);
   } else if (profileUsername && profileRanksSection === 'collectables') {
+    lastHash = currentHash;
     closeOverlay();
     closeProfileDashboard();
     if (toggleBtn) {
@@ -281,6 +284,7 @@ function handleUrlChange() {
     }
     mountProfileCollectables(profileUsername, profileDashboardLoader);
   } else if (profileUsername && PROFILE_ACHIEVEMENT_SECTIONS.has(profileAchievementsSection)) {
+    lastHash = currentHash;
     closeOverlay();
     closeProfileDashboard();
     if (toggleBtn) {
@@ -288,6 +292,7 @@ function handleUrlChange() {
     }
     mountProfileAchievements(profileUsername, profileAchievementsSection, profileDashboardLoader);
   } else if (profileUsername && PROFILE_SKILL_SECTIONS.has(profileSkillsSection)) {
+    lastHash = currentHash;
     closeOverlay();
     closeProfileDashboard();
     if (toggleBtn) {
@@ -295,6 +300,7 @@ function handleUrlChange() {
     }
     mountProfileGenericRows(profileUsername, 'skills', profileSkillsSection, profileDashboardLoader);
   } else if (profileUsername && PROFILE_STATISTICS_SECTIONS.has(profileStatisticsSection)) {
+    lastHash = currentHash;
     closeOverlay();
     closeProfileDashboard();
     if (toggleBtn) {
@@ -302,12 +308,14 @@ function handleUrlChange() {
     }
     mountProfileGenericRows(profileUsername, 'statistics', profileStatisticsSection, profileDashboardLoader);
   } else if (profileUsername && !profileRanksSection) {
+    lastHash = currentHash;
     closeOverlay();
     if (toggleBtn) {
       toggleBtn.style.display = 'none';
     }
     mountProfileDashboard(profileUsername, profileDashboardLoader);
   } else {
+    lastHash = currentHash;
     if (toggleBtn) {
       toggleBtn.style.display = 'none';
     }
@@ -379,11 +387,10 @@ function mountProfileDashboard(username, loaderHtml) {
     }
 
     clearProfileDashboardMountTimer();
-    const rankImageUrl = readProfileRankImageUrl(document.getElementById('profile') || target);
     const payload = buildProfileVisionPayload(username, target);
     showProfileDashboardLoading(target, loaderHtml, 'vision-general');
     saveProfileVisionGeneral(payload).finally(() => {
-      target.innerHTML = renderProfileDashboardFrame(username, rankImageUrl);
+      target.innerHTML = renderProfileDashboardFrame(username);
     });
   }, 100);
 }
@@ -400,12 +407,11 @@ function mountProfileAnimals(username, loaderHtml) {
 
     clearProfileDashboardMountTimer();
     const dashboardHost = findProfileDashboardHost(target);
-    const rankImageUrl = readProfileRankImageUrl(document.getElementById('profile') || target);
     showProfileDashboardLoading(dashboardHost, loaderHtml, 'vision-general');
     saveProfileAnimals(username, target).catch(error => {
       console.error('[THC Addon] Error al guardar especies del perfil:', error);
     }).finally(() => {
-      dashboardHost.innerHTML = renderProfileAnimalsDashboardFrame(username, rankImageUrl);
+      dashboardHost.innerHTML = renderProfileAnimalsDashboardFrame(username);
     });
   }, 100);
 }
@@ -422,12 +428,11 @@ function mountProfileWeapons(username, loaderHtml) {
 
     clearProfileDashboardMountTimer();
     const dashboardHost = findProfileDashboardHost(target);
-    const rankImageUrl = readProfileRankImageUrl(document.getElementById('profile') || target);
     showProfileDashboardLoading(dashboardHost, loaderHtml, 'vision-general');
     saveProfileWeapons(username, target).catch(error => {
       console.error('[THC Addon] Error al guardar armas del perfil:', error);
     }).finally(() => {
-      dashboardHost.innerHTML = renderProfileWeaponsDashboardFrame(username, rankImageUrl);
+      dashboardHost.innerHTML = renderProfileWeaponsDashboardFrame(username);
     });
   }, 100);
 }
@@ -444,12 +449,11 @@ function mountProfileCollectables(username, loaderHtml) {
 
     clearProfileDashboardMountTimer();
     const dashboardHost = findProfileDashboardHost(target);
-    const rankImageUrl = readProfileRankImageUrl(document.getElementById('profile') || target);
     showProfileDashboardLoading(dashboardHost, loaderHtml, 'vision-general');
     saveProfileCollectables(username, target).catch(error => {
       console.error('[THC Addon] Error al guardar coleccionables del perfil:', error);
     }).finally(() => {
-      dashboardHost.innerHTML = renderProfileCollectablesDashboardFrame(username, rankImageUrl);
+      dashboardHost.innerHTML = renderProfileCollectablesDashboardFrame(username);
     });
   }, 100);
 }
@@ -461,19 +465,21 @@ function mountProfileAchievements(username, section, loaderHtml) {
     attempts++;
     const target = findProfileAchievementsContainer(section);
     if (!target) {
-      if (attempts >= 80) clearProfileDashboardMountTimer();
+      if (attempts >= 80) {
+        clearProfileDashboardMountTimer();
+        lastHash = '';
+      }
       return;
     }
 
     clearProfileDashboardMountTimer();
     const dashboardHost = findProfileDashboardHost(target);
-    const rankImageUrl = readProfileRankImageUrl(document.getElementById('profile') || target);
     const payload = buildProfileAchievementsPayload(username, section, target);
     showProfileDashboardLoading(dashboardHost, loaderHtml, 'vision-general');
     saveProfileAchievements(payload).catch(error => {
       console.error('[THC Addon] Error al guardar logros del perfil:', error);
     }).finally(() => {
-      dashboardHost.innerHTML = renderProfileAchievementsDashboardFrame(username, section, rankImageUrl);
+      dashboardHost.innerHTML = renderProfileAchievementsDashboardFrame(username, section);
     });
   }, 100);
 }
@@ -489,11 +495,13 @@ function mountProfileGenericRows(username, kind, section, loaderHtml) {
     }
 
     clearProfileDashboardMountTimer();
-    showProfileDashboardLoading(target, loaderHtml);
-    saveProfileGenericRows(username, kind, section, target).catch(error => {
+    const dashboardHost = findProfileDashboardHost(target);
+    const payload = buildProfileGenericRowsPayload(username, kind, section, target);
+    showProfileDashboardLoading(dashboardHost, loaderHtml, 'vision-general');
+    saveProfileGenericRows(payload).catch(error => {
       console.error('[THC Addon] Error al guardar datos del perfil:', error);
     }).finally(() => {
-      target.innerHTML = renderProfileGenericRowsDashboardFrame(username, kind, section);
+      dashboardHost.innerHTML = renderProfileGenericRowsDashboardFrame(username, kind, section);
     });
   }, 100);
 }
@@ -561,8 +569,7 @@ async function saveProfileAchievements(payload) {
   }
 }
 
-async function saveProfileGenericRows(username, kind, section, target) {
-  const payload = buildProfileGenericRowsPayload(username, kind, section, target);
+async function saveProfileGenericRows(payload) {
   if (!payload) return;
   const response = await fetch(PROFILE_VISION_API_URL, {
     method: 'POST',
@@ -570,7 +577,7 @@ async function saveProfileGenericRows(username, kind, section, target) {
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
-    throw new Error(`profile ${kind} save failed: ${response.status}`);
+    throw new Error(`profile ${(payload && payload.kind) || 'generic'} save failed: ${response.status}`);
   }
 }
 
@@ -647,7 +654,9 @@ function buildProfileCollectablesPayload(username, target) {
 function buildProfileAchievementsPayload(username, section, target) {
   const userId = currentUserId || readProfileUserId();
   if (!userId || !PROFILE_ACHIEVEMENT_SECTIONS.has(section)) return null;
-  const rows = readProfileAchievementRows(target);
+  const rows = section === 'summary'
+    ? readProfileAchievementsSummary(target)
+    : readProfileAchievementRows(target);
   if (!rows.length) return null;
   return {
     user_id: userId,
@@ -809,6 +818,54 @@ function readProfileAchievementRow(element, order) {
   };
 }
 
+function readProfileAchievementsSummary(target) {
+  const rows = [];
+  target.querySelectorAll('.achievement-holder .achievement-container').forEach((container, index) => {
+    const indicator = container.querySelector('.achievement-progress-indicator');
+    const indicatorText = normalizeWhitespace(indicator ? indicator.textContent : '');
+    const match = indicatorText.match(/^(.+?)\s+[^:]+:\s*(\d+)\s*\/\s*(\d+)\s*\(?\s*(\d+(?:[.,]\d+)?)\s*%?\)?/);
+    const progress = container.querySelector('.achievement-progress');
+    rows.push({
+      orden: index + 1,
+      row_type: 'category_progress',
+      category_title: match ? match[1].trim() : indicatorText,
+      completed_count: match ? Number(match[2]) : null,
+      total_count: match ? Number(match[3]) : null,
+      progress_pct: match ? Number(match[4].replace(',', '.')) : readPercentageAttribute(progress),
+      raw_text: normalizeWhitespace(container.textContent)
+    });
+  });
+  target.querySelectorAll('table.achievement-latest tbody tr').forEach((row, index) => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length < 4) return;
+    const image = cells[0].querySelector('img');
+    rows.push({
+      orden: index + 1,
+      row_type: 'latest',
+      achievement_title: normalizeWhitespace(cells[1].querySelector('b')?.textContent || '') || null,
+      achievement_description: Array.from(cells[1].childNodes)
+        .map(node => node.nodeType === Node.TEXT_NODE ? node.textContent : '')
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim() || null,
+      achievement_icon_url: image ? normalizeTheHunterAssetUrl(image.currentSrc || image.src) : null,
+      achievement_date: normalizeWhitespace(cells[2].textContent) || null,
+      value: normalizeWhitespace(cells[3].textContent) || null,
+      raw_text: normalizeWhitespace(row.textContent)
+    });
+  });
+  const foundMatch = target.textContent.match(/(?:Achievements found|Logros encontrados)[^\d]*(\d+)/i);
+  if (foundMatch) {
+    rows.push({
+      orden: rows.length + 1,
+      row_type: 'statistic',
+      metric_name: 'achievements_found',
+      value: foundMatch[1]
+    });
+  }
+  return rows;
+}
+
 function readProfileAchievementLevelRows(target) {
   const rows = [];
   target.querySelectorAll('.achievement-info').forEach((container, index) => {
@@ -891,6 +948,12 @@ function readOwnText(element) {
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function readPercentageAttribute(element) {
+  if (!element) return null;
+  const value = element.getAttribute('data-percentage') || '';
+  return value ? Number(value.replace('%', '').replace(',', '.')) : null;
 }
 
 function readProfileGenericRows(target) {
@@ -1082,7 +1145,7 @@ function findProfileVisionGeneralContainer() {
 }
 
 function findProfileDashboardHost(target) {
-  return target.closest('.ranks-content, .achievements-content') || target;
+  return target.closest('.ranks-content, .achievements-content, .skills-content, .statistics-content') || target;
 }
 
 function findProfileAnimalsContainer() {
@@ -1104,11 +1167,31 @@ function findProfileRanksContainer() {
   return candidates.length ? candidates[0].element : null;
 }
 
+function hasProfileAchievementsSectionContent(section, element) {
+  if (!element) return false;
+  if (section === 'summary') {
+    const text = normalizeWhitespace(element.textContent);
+    return Boolean(
+      element.querySelector('.achievement-holder .achievement-container') ||
+      element.querySelector('table.achievement-latest tbody tr') ||
+      /Achievements found|Logros encontrados|Logros Recientes|Logros Desbloqueados/i.test(text)
+    );
+  }
+  if (section === 'challenges') {
+    const text = normalizeWhitespace(element.textContent);
+    return Boolean(
+      element.querySelector('table.challenges tbody tr') ||
+      /Challenges|Challenge|Desaf|Assassin|Truffle Pig|Raining Ducks|Far and Away|Fast Food|Triple Score|Pincushion|Lucky Luke/i.test(text)
+    );
+  }
+  return true;
+}
+
 function findProfileAchievementsContainer(section) {
   const achievementsContent = document.querySelector('#profile_content .achievements-content');
   if (achievementsContent) {
     const rect = achievementsContent.getBoundingClientRect();
-    if (rect.width >= 300 && rect.height >= 120) {
+    if (rect.width >= 300 && rect.height >= 120 && hasProfileAchievementsSectionContent(section, achievementsContent)) {
       return achievementsContent;
     }
   }
@@ -1141,7 +1224,7 @@ function findProfileAchievementsContainer(section) {
         matchesGeneric: /achievement|achievements|logro|logros|unlocked|desbloqueado/i.test(text)
       };
     })
-    .filter(item => item.matchesSection || item.images >= 2 || item.rows >= 2 || item.matchesGeneric)
+    .filter(item => (item.matchesSection || item.images >= 2 || item.rows >= 2 || item.matchesGeneric) && hasProfileAchievementsSectionContent(section, item.element))
     .map(item => ({ ...item, rect: item.element.getBoundingClientRect() }))
     .filter(item => item.rect.width >= 300 && item.rect.height >= 120)
     .sort((left, right) => {
@@ -1154,6 +1237,27 @@ function findProfileAchievementsContainer(section) {
 }
 
 function findProfileGenericRowsContainer(kind) {
+  const contentClass = kind === 'skills' ? 'skills-content' : 'statistics-content';
+  const sectionContent = document.querySelector(`#profile_content .${contentClass}`);
+  if (sectionContent) {
+    const rect = sectionContent.getBoundingClientRect();
+    if (rect.width >= 300 && rect.height >= 120) {
+      return sectionContent;
+    }
+  }
+
+  const profileContent = document.getElementById('profile_content');
+  if (profileContent) {
+    const text = normalizeWhitespace(profileContent.textContent);
+    const rect = profileContent.getBoundingClientRect();
+    const pattern = kind === 'skills'
+      ? /skill|skills|habilidad|habilidades|weapon|weapons|arma|armas/i
+      : /statistic|statistics|estad/i;
+    if (pattern.test(text) && rect.width >= 300 && rect.height >= 120) {
+      return profileContent;
+    }
+  }
+
   const pattern = kind === 'skills'
     ? /skill|skills|habilidad|habilidades|weapon|weapons|arma|armas/i
     : /statistic|statistics|estad/i;
@@ -1349,7 +1453,6 @@ function closeProfileDashboard() {
   });
   const profile = document.getElementById('profile');
   profile?.classList.remove('thc-profile-dashboard-active');
-  profile?.querySelector('#profile-ribbon')?.style.removeProperty('display');
 }
 
 function showProfileDashboardLoading(target, loaderHtml, variant) {
@@ -1358,8 +1461,6 @@ function showProfileDashboardLoading(target, loaderHtml, variant) {
     const profile = document.getElementById('profile');
     if (profile) {
       profile.classList.add('thc-profile-dashboard-active');
-      const ribbon = profile.querySelector('#profile-ribbon');
-      if (ribbon) ribbon.style.display = 'none';
       const profileRect = profile.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
       target.style.setProperty('--thc-profile-dashboard-offset-left', `${Math.max(0, Math.ceil(targetRect.left - profileRect.left))}px`);
@@ -1379,39 +1480,46 @@ function renderProfileDashboardLoading() {
   return '<div class="thc-profile-dashboard-loading"><div class="thc-profile-dashboard-loading-box"><div class="thc-profile-dashboard-loading-spinner"></div><div>Cargando panel...</div></div></div>';
 }
 
-function renderProfileDashboardFrame(username, rankImageUrl) {
+function renderProfileDashboardFrame(username) {
   const dashboardUrl = buildProfileDashboardUrl(username);
-  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana', rankImageUrl);
+  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana');
 }
 
-function renderProfileDashboardLayout(dashboardUrl, title, rankImageUrl) {
-  const rankImage = rankImageUrl
-    ? `<img class="thc-profile-rank-strip-image" src="${escapeHtml(rankImageUrl)}" alt="">`
-    : '';
+function renderProfileDashboardLayout(dashboardUrl, title) {
   if (!dashboardUrl) {
-    return `<div class="thc-profile-dashboard-layout">${rankImage}<div class="thc-profile-dashboard-empty">Dashboard pendiente de configurar.</div></div>`;
+    return '<div class="thc-profile-dashboard-layout"><div class="thc-profile-dashboard-empty">Dashboard pendiente de configurar.</div></div>';
   }
-  return `<div class="thc-profile-dashboard-layout">${rankImage}<iframe class="thc-profile-dashboard-frame" title="${escapeHtml(title)}" src="${dashboardUrl}"></iframe></div>`;
+  return `<div class="thc-profile-dashboard-layout"><iframe class="thc-profile-dashboard-frame" title="${escapeHtml(title)}" src="${dashboardUrl}"></iframe></div>`;
 }
 
-function renderProfileAnimalsDashboardFrame(username, rankImageUrl) {
+function renderProfileAnimalsDashboardFrame(username) {
   const dashboardUrl = buildProfileAnimalsDashboardUrl(username);
-  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana especies', rankImageUrl);
+  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana especies');
 }
 
-function renderProfileWeaponsDashboardFrame(username, rankImageUrl) {
+function renderProfileWeaponsDashboardFrame(username) {
   const dashboardUrl = buildProfileWeaponsDashboardUrl(username);
-  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana armas', rankImageUrl);
+  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana armas');
 }
 
-function renderProfileCollectablesDashboardFrame(username, rankImageUrl) {
+function renderProfileCollectablesDashboardFrame(username) {
   const dashboardUrl = buildProfileCollectablesDashboardUrl(username);
-  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana coleccionables', rankImageUrl);
+  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana coleccionables');
 }
 
-function renderProfileAchievementsDashboardFrame(username, section, rankImageUrl) {
+function renderProfileAchievementsDashboardFrame(username, section) {
   const dashboardUrl = buildProfileAchievementsDashboardUrl(username, section);
-  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana logros', rankImageUrl);
+  return renderProfileDashboardLayout(dashboardUrl, 'Dashboard Grafana logros');
+}
+
+function renderProfileGenericRowsDashboardFrame(username, kind, section) {
+  const dashboardUrl = kind === 'skills'
+    ? buildProfileSkillsDashboardUrl(username, section)
+    : buildProfileStatisticsDashboardUrl(username, section);
+  const title = kind === 'skills'
+    ? 'Dashboard Grafana habilidades'
+    : 'Dashboard Grafana estadisticas';
+  return renderProfileDashboardLayout(dashboardUrl, title);
 }
 
 function buildProfileDashboardUrl(username) {
@@ -1448,6 +1556,26 @@ function buildProfileCollectablesDashboardUrl(username) {
 
 function buildProfileAchievementsDashboardUrl(username, section) {
   const dashboardUrl = GRAFANA_PROFILE_ACHIEVEMENTS_DASHBOARD_URLS[section] || '';
+  if (!dashboardUrl) return '';
+  const url = new URL(dashboardUrl);
+  url.searchParams.set('var-profile_username', username);
+  url.searchParams.set('var-section', section);
+  if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
+  return url.toString();
+}
+
+function buildProfileSkillsDashboardUrl(username, section) {
+  const dashboardUrl = GRAFANA_PROFILE_SKILLS_DASHBOARD_URLS[section] || '';
+  if (!dashboardUrl) return '';
+  const url = new URL(dashboardUrl);
+  url.searchParams.set('var-profile_username', username);
+  url.searchParams.set('var-section', section);
+  if (currentUserId) url.searchParams.set('var-user_id', String(currentUserId));
+  return url.toString();
+}
+
+function buildProfileStatisticsDashboardUrl(username, section) {
+  const dashboardUrl = GRAFANA_PROFILE_STATISTICS_DASHBOARD_URLS[section] || '';
   if (!dashboardUrl) return '';
   const url = new URL(dashboardUrl);
   url.searchParams.set('var-profile_username', username);
